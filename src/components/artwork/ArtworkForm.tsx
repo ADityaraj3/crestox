@@ -56,7 +56,7 @@ interface ArtworkFormProps {
     artistProfileId: number
     onSubmit?: (values: ArtworkFormValues) => void | Promise<void>
 }
-
+ 
 export default function ArtworkForm({ artistProfileId, onSubmit }: ArtworkFormProps) {
     const [photoFiles, setPhotoFiles] = useState<File[]>([])
 
