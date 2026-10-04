@@ -1,7 +1,5 @@
-"use client";
-
-import CuratorOnboardingWizard from "@/components/curator/CuratorOnboardingWizard";
+import { redirect } from "next/navigation";
 
 export default function CuratorOnboardingPage() {
-    return <CuratorOnboardingWizard variant="signup" />;
+    redirect("/portfolio");
 }

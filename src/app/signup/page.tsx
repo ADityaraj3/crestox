@@ -40,12 +40,12 @@ import {
 import { CheckIcon, LoaderCircleIcon, CheckCircle2, Mail, Pencil, Check, Info } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import GradientButton from "@/components/ui/gradiant-button"
-import ArtistProfileForm from "./ArtistProfileForm"
 import { useAuthStore } from "@/store/useAuthStore"
 import { useUserStore } from "@/store/useUserStore"
 import { useGoogleSignIn } from "@/hooks/useGoogleSignIn"
 import { useAppleSignIn } from "@/hooks/useAppleSignIn"
 import { toast } from "sonner"
+import { getPostAuthPath } from "@/utils/authRedirect"
 
 const formSchema = z.object({
     firstName: z.string().trim().min(1, { message: "First name is required." }),
@@ -122,17 +122,7 @@ function SignupFormContent() {
             if (result && "accessToken" in result && result.accessToken) {
                 void useUserStore.getState().initialize();
                 toast.success("Successfully signed up with Apple!");
-                if (result.isNewArtist && userType === UserType.ARTIST) {
-                    router.push("/onboarding/artist");
-                } else if (result.isNewCurator && userType === UserType.CURATOR) {
-                    router.push("/onboarding/curator");
-                } else if (result.isNewOwner && userType === UserType.OWNER) {
-                    router.push("/onboarding/owner");
-                } else if (result.isNewCollector) {
-                    router.push("/explore");
-                } else {
-                    router.push("/");
-                }
+                router.push(getPostAuthPath(result));
             }
         } catch (err) {
             console.error("Apple sign-in error:", err);
@@ -418,7 +408,7 @@ function SignupFormContent() {
                                                 />
                                             </StepperContent>
 
-                                            <div className="flex justify-between !mt-[50px]">
+                                            <div className="flex justify-between mt-6">
                                                 <Button
                                                     type="button"
                                                     variant="outline"
@@ -439,7 +429,7 @@ function SignupFormContent() {
                                                     >
                                                     </GradientButton>
                                                 ) : (
-                                                    <div className="flex flex-col w-full text-right items-end gap-2">
+                                                    <div className="flex flex-col text-right items-end gap-2">
                                                         <GradientButton
                                                             type="submit"
                                                             className="bg-primary hover:bg-primary/90 text-primary-foreground"

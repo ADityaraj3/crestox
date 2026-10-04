@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useUserStore } from '@/store/useUserStore';
 import { toast } from 'sonner';
-import { redirectUnknownUserToSignup } from '@/utils/authRedirect';
+import { getPostAuthPath, redirectUnknownUserToSignup } from '@/utils/authRedirect';
 import { UserType } from '@/enums/userType';
 import { LoaderCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -79,14 +79,7 @@ function GoogleCallbackContent() {
                 if (result && "accessToken" in result && result.accessToken) {
                     await useUserStore.getState().initialize();
                     toast.success(intent === 'login' ? "Successfully logged in with Google!" : "Successfully signed up with Google!");
-
-                    if (result.isNewArtist) {
-                        router.push("/onboarding/artist");
-                    } else if (result.isNewCollector) {
-                        router.push("/explore");
-                    } else {
-                        router.push("/");
-                    }
+                    router.push(getPostAuthPath(result));
                     return;
                 }
 

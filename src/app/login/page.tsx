@@ -33,7 +33,7 @@ import { useAppleSignIn } from "@/hooks/useAppleSignIn"
 import { usePasskeyAuth } from "@/hooks/usePasskeyAuth"
 import { useUserStore } from "@/store/useUserStore"
 import { toast } from "sonner"
-import { redirectUnknownUserToSignup } from "@/utils/authRedirect"
+import { getPostAuthPath, redirectUnknownUserToSignup } from "@/utils/authRedirect"
 
 const formSchema = z.object({
     email: z.string().email({
@@ -73,17 +73,7 @@ function LoginFormContent() {
         if (result?.accessToken) {
             void useUserStore.getState().initialize();
             toast.success("Successfully logged in with passkey!");
-            if (result.isNewArtist) {
-                router.push("/onboarding/artist");
-            } else if (result.isNewCurator) {
-                router.push("/onboarding/curator");
-            } else if (result.isNewOwner) {
-                router.push("/onboarding/owner");
-            } else if (result.isNewCollector) {
-                router.push("/explore");
-            } else {
-                router.push("/");
-            }
+            router.push(getPostAuthPath(result));
         }
     };
 
@@ -108,17 +98,7 @@ function LoginFormContent() {
             if (result && "accessToken" in result && result.accessToken) {
                 void useUserStore.getState().initialize();
                 toast.success("Successfully logged in with Apple!");
-                if (result.isNewArtist) {
-                    router.push("/onboarding/artist");
-                } else if (result.isNewCurator) {
-                    router.push("/onboarding/curator");
-                } else if (result.isNewOwner) {
-                    router.push("/onboarding/owner");
-                } else if (result.isNewCollector) {
-                    router.push("/explore");
-                } else {
-                    router.push("/");
-                }
+                router.push(getPostAuthPath(result));
             }
         } catch (err) {
             console.error("Apple sign-in error:", err);

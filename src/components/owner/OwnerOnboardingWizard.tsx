@@ -704,8 +704,22 @@ export default function OwnerOnboardingWizard({ variant = "portfolio", className
           {activeStep === 2 && (
             <>
               <div className="space-y-4">
-                <FormLabel className="text-base text-foreground/90">Notable owned works</FormLabel>
-                <p className="text-[13px] text-muted-foreground">Add works from your collection with proof of provenance.</p>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 space-y-1">
+                    <p className="text-base font-medium text-foreground/90">Notable owned works</p>
+                    <p className="text-[13px] text-muted-foreground">Add works from your collection with proof of provenance.</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 font-sans shrink-0"
+                    onClick={() => appendOwned({ name: "", acquisitionValue: "" })}
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    Add Owned Work
+                  </Button>
+                </div>
                 {ownedFields.map((f, index) => (
                   <div key={f.id} className="p-5 border border-border/40 rounded-lg space-y-6 relative group">
                     <div className="absolute right-4 top-4">
@@ -864,14 +878,22 @@ export default function OwnerOnboardingWizard({ variant = "portfolio", className
                     />
                   </div>
                 ))}
-                <Button type="button" variant="outline" size="sm" className="gap-2 font-sans" onClick={() => appendOwned({ name: "", acquisitionValue: "" })}>
-                  <PlusCircle className="w-4 h-4" />
-                  Add Owned Work
-                </Button>
               </div>
 
               <div className="space-y-4">
-                <FormLabel className="text-base text-foreground/90">Collection highlights</FormLabel>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-base font-medium text-foreground/90">Collection highlights</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 font-sans shrink-0"
+                    onClick={() => appendHighlight({ name: "" })}
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    Add Highlight
+                  </Button>
+                </div>
                 {highlightFields.map((f, index) => (
                   <div key={f.id} className="p-4 border border-border/40 rounded-lg space-y-4">
                     <div className="flex gap-4">
@@ -957,10 +979,6 @@ export default function OwnerOnboardingWizard({ variant = "portfolio", className
                     </div>
                   </div>
                 ))}
-                <Button type="button" variant="outline" size="sm" className="gap-2 font-sans" onClick={() => appendHighlight({ name: "" })}>
-                  <PlusCircle className="w-4 h-4" />
-                  Add Highlight
-                </Button>
               </div>
             </>
           )}

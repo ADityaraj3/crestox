@@ -726,7 +726,19 @@ export default function CuratorOnboardingWizard({ variant = "portfolio", classNa
           {activeStep === 2 && (
             <>
               <div className="space-y-4">
-                <FormLabel className="text-base text-foreground/90">Curated exhibitions / shows</FormLabel>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-base font-medium text-foreground/90">Curated exhibitions / shows</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 font-sans shrink-0"
+                    onClick={() => appendExhibition({ name: "" })}
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    Add Exhibition
+                  </Button>
+                </div>
                 {exhibitionFields.map((f, index) => (
                   <div key={f.id} className="p-4 border border-border/40 rounded-lg space-y-4">
                     <div className="flex gap-4">
@@ -764,14 +776,22 @@ export default function CuratorOnboardingWizard({ variant = "portfolio", classNa
                     </div>
                   </div>
                 ))}
-                <Button type="button" variant="outline" size="sm" className="gap-2 font-sans" onClick={() => appendExhibition({ name: "" })}>
-                  <PlusCircle className="w-4 h-4" />
-                  Add Exhibition
-                </Button>
               </div>
 
               <div className="space-y-4">
-                <FormLabel className="text-base text-foreground/90">Publications &amp; press</FormLabel>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-base font-medium text-foreground/90">Publications &amp; press</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 font-sans shrink-0"
+                    onClick={() => appendPublication({ name: "" })}
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    Add Publication
+                  </Button>
+                </div>
                 {publicationFields.map((f, index) => (
                   <div key={f.id} className="p-4 border border-border/40 rounded-lg space-y-4">
                     <div className="flex gap-4">
@@ -809,10 +829,6 @@ export default function CuratorOnboardingWizard({ variant = "portfolio", classNa
                     </div>
                   </div>
                 ))}
-                <Button type="button" variant="outline" size="sm" className="gap-2 font-sans" onClick={() => appendPublication({ name: "" })}>
-                  <PlusCircle className="w-4 h-4" />
-                  Add Publication
-                </Button>
               </div>
             </>
           )}

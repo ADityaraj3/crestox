@@ -80,7 +80,7 @@ export default function LandingPage() {
     // If user is logged in, redirect to artist onboarding form
     // Otherwise, redirect to signup with artist type
     if (user) {
-      router.push('/onboarding/artist');
+      router.push('/portfolio');
     } else {
       router.push(`/signup?user_type=${UserType.ARTIST}`);
     }

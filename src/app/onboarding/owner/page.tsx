@@ -1,7 +1,5 @@
-"use client";
-
-import OwnerOnboardingWizard from "@/components/owner/OwnerOnboardingWizard";
+import { redirect } from "next/navigation";
 
 export default function OwnerOnboardingPage() {
-    return <OwnerOnboardingWizard variant="signup" />;
+    redirect("/portfolio");
 }

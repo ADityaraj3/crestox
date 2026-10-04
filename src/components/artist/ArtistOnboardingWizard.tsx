@@ -811,7 +811,19 @@ export default function ArtistOnboardingWizard({ variant = "portfolio", classNam
           {activeStep === 2 && (
             <>
               <div className="space-y-4">
-                <FormLabel className="text-base text-foreground/90">Awards</FormLabel>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-base font-medium text-foreground/90">Awards</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 font-sans shrink-0"
+                    onClick={() => appendAward({ name: "" })}
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    Add Award
+                  </Button>
+                </div>
                 {awardFields.map((awardField, index) => (
                   <div key={awardField.id} className="p-4 border border-border/40 rounded-lg space-y-4 relative group">
                     <div className="flex gap-4">
@@ -906,22 +918,22 @@ export default function ArtistOnboardingWizard({ variant = "portfolio", classNam
                     </div>
                   </div>
                 ))}
-                <div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-base font-medium text-foreground/90">Exhibitions</p>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="gap-2 font-sans"
-                    onClick={() => appendAward({ name: "" })}
+                    className="gap-2 font-sans shrink-0"
+                    onClick={() => appendExhibition({ name: "" })}
                   >
                     <PlusCircle className="w-4 h-4" />
-                    Add Award
+                    Add Exhibition
                   </Button>
                 </div>
-              </div>
-
-              <div className="space-y-4">
-                <FormLabel className="text-base text-foreground/90">Exhibitions</FormLabel>
                 {exhibitionFields.map((exhibitionField, index) => (
                   <div key={exhibitionField.id} className="p-4 border border-border/40 rounded-sm space-y-4 relative group">
                     <div className="flex gap-4">
@@ -1016,23 +1028,25 @@ export default function ArtistOnboardingWizard({ variant = "portfolio", classNam
                     </div>
                   </div>
                 ))}
-                <div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 space-y-1">
+                    <p className="text-base font-medium text-foreground/90">Previously sold artworks</p>
+                    <p className="text-[13px] text-muted-foreground">Optional — helps establish your sales track record.</p>
+                  </div>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="gap-2 font-sans"
-                    onClick={() => appendExhibition({ name: "" })}
+                    className="gap-2 font-sans shrink-0"
+                    onClick={() => appendSoldArtwork({ name: "", saleValue: "" })}
                   >
                     <PlusCircle className="w-4 h-4" />
-                    Add Exhibition
+                    Add Sold Artwork
                   </Button>
                 </div>
-              </div>
-
-              <div className="space-y-4">
-                <FormLabel className="text-base text-foreground/90">Previously sold artworks</FormLabel>
-                <p className="text-[13px] text-muted-foreground">Optional — helps establish your sales track record.</p>
                 {soldArtworkFields.map((soldField, index) => (
                   <div key={soldField.id} className="p-5 border border-border/40 rounded-lg space-y-6 relative group">
                     <div className="absolute right-4 top-4">
@@ -1201,18 +1215,6 @@ export default function ArtistOnboardingWizard({ variant = "portfolio", classNam
                     />
                   </div>
                 ))}
-                <div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="gap-2 font-sans"
-                    onClick={() => appendSoldArtwork({ name: "", saleValue: "" })}
-                  >
-                    <PlusCircle className="w-4 h-4" />
-                    Add Sold Artwork
-                  </Button>
-                </div>
               </div>
             </>
           )}

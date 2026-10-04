@@ -5,9 +5,9 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { useAuthStore } from "@/store/useAuthStore"
 import { useUserStore } from "@/store/useUserStore"
 import { consumeReturnTo } from "@/utils/returnTo"
+import { getPostAuthPath } from "@/utils/authRedirect"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { LoaderCircleIcon, CheckCircle2, XCircle } from "lucide-react"
-import { UserType } from "@/enums/userType"
 
 function VerifyContent() {
     const searchParams = useSearchParams()
@@ -35,32 +35,7 @@ function VerifyContent() {
                         return;
                     }
 
-                    const types = verifyResult.userTypes as string[];
-                    const isArtist = types.includes(UserType.ARTIST) || types.includes("artist");
-                    const isCurator = types.includes(UserType.CURATOR) || types.includes("curator") || types.includes("curators");
-                    const isOwner = types.includes(UserType.OWNER) || types.includes("owner");
-                    const isCollector = types.includes(UserType.COLLECTOR) || types.includes("collector");
-
-                    // Prioritize the specialized role's onboarding when it hasn't been completed.
-                    if (isArtist && (verifyResult.isNewUser || verifyResult.isNewArtist)) {
-                        router.push("/onboarding/artist");
-                    } else if (isCurator && (verifyResult.isNewUser || verifyResult.isNewCurator)) {
-                        router.push("/onboarding/curator");
-                    } else if (isOwner && (verifyResult.isNewUser || verifyResult.isNewOwner)) {
-                        router.push("/onboarding/owner");
-                    } else if (isArtist) {
-                        router.push("/portfolio");
-                    } else if (isCurator || isOwner) {
-                        router.push("/collection");
-                    } else if (isCollector) {
-                        if (verifyResult.isNewUser || verifyResult.isNewCollector) {
-                            router.push("/explore");
-                        } else {
-                            router.push("/collection");
-                        }
-                    } else {
-                        router.push("/");
-                    }
+                    router.push(getPostAuthPath(verifyResult));
                 } else {
                     setTimeout(() => {
                         clearStore()
