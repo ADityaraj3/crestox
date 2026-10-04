@@ -313,10 +313,17 @@ export interface BuyFillLine {
 
 export interface BufferPriceQuote {
     current_price: number;
+    /** Dynamic slippage buffer (Dynamic Buffer Addendum) added to the charge; unused part is refunded. */
     buffer_percent: number | null;
+    /** Buffer before the 15% ceiling; above it the buyer must acknowledge high volatility. */
+    raw_buffer_percent?: number | null;
+    high_volatility_warning?: boolean;
     fill_breakdown: BuyFillLine[];
     fill_subtotal_pre_tax: string | null;
+    /** Estimate including GST and the 2% buyer fee on resale fills. */
     fill_total_buyer_pays: string | null;
+    /** What Razorpay will charge: estimate + buffer. */
+    max_charge?: string | null;
     total_available_shares: number | null;
     sufficient_for_quantity: boolean | null;
 }
@@ -349,6 +356,9 @@ export const getBufferPriceQuote = (artworkId: number, quantity?: number) => asy
         fill_total_buyer_pays: fillTotal != null ? String(fillTotal) : null,
         total_available_shares: totalAvail != null && Number.isFinite(Number(totalAvail)) ? Number(totalAvail) : null,
         sufficient_for_quantity: typeof sufficient === 'boolean' ? sufficient : null,
+        raw_buffer_percent: data?.raw_buffer_percent != null ? Number(data.raw_buffer_percent) : null,
+        high_volatility_warning: data?.high_volatility_warning === true,
+        max_charge: data?.max_charge != null ? String(data.max_charge) : null,
     };
 };
 
@@ -363,6 +373,8 @@ export interface InitiateBuyResponse {
     amount: string;
     estimated_cost: string;
     buffer_pct: string;
+    raw_buffer_pct?: string;
+    high_volatility?: boolean;
     max_charge: string;
     expires_at: string;
     price_disclaimer: string;
@@ -380,10 +392,21 @@ export interface InitiateBuyResponse {
     }>;
 }
 
-export const initiateBuyOrder = (data: { artwork_id: number; quantity: number; max_slippage_pct?: number; quoted_price?: number }) => async (): Promise<InitiateBuyResponse> => {
-    const response = await instance.post(ARTIST_URLS.INITIATE_BUY, data);
+export const initiateBuyOrder =
+    (data: { artwork_id: number; quantity: number; quoted_price?: number; acknowledge_high_volatility?: boolean }) =>
+    async (): Promise<InitiateBuyResponse> => {
+        const response = await instance.post(ARTIST_URLS.INITIATE_BUY, data);
+        return response.data?.data;
+    };
+
+/** Releases the reserved fractals of a checkout the buyer closed without paying. */
+export const cancelBuyOrder = (razorpayOrderId: string) => async (): Promise<{ status: string; message: string }> => {
+    const response = await instance.post(ARTIST_URLS.CANCEL_BUY(razorpayOrderId));
     return response.data?.data;
 };
+
+/** Error code returned (HTTP 409) when the buyer must acknowledge high volatility first. */
+export const HIGH_VOLATILITY_ACK_REQUIRED = 'HIGH_VOLATILITY_ACK_REQUIRED';
 
 export interface CompleteBuyOrderResponse {
     status?: 'COMPLETED' | 'ALREADY_COMPLETED' | 'PROCESSING';
@@ -422,7 +445,7 @@ export interface BuyOrderStatusResponse {
     razorpay_order_id: string;
     artwork_id: number;
     quantity: number;
-    status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'FAILED_PRICE_MOVED' | 'EXPIRED';
+    status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'FAILED_PRICE_MOVED' | 'EXPIRED' | 'CANCELLED';
     terminal: boolean;
     message: string;
     amount: string;

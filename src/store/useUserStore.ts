@@ -20,6 +20,12 @@ export interface User {
     isAdmin: boolean;
     artist_profile_id?: number | null;
     artist_profile_approved?: boolean;
+    /** ARTIST, or CURATOR / OWNER for the selling profile those roles get once onboarded. */
+    artist_creator_type?: "ARTIST" | "CURATOR" | "OWNER" | null;
+    /** True for approved artists, curators and owners. */
+    can_add_artwork?: boolean;
+    billing_state_code?: string | null;
+    gstin?: string | null;
     artist_onboarding_last_completed_step?: number | null;
     curator_profile_id?: number | null;
     curator_profile_approved?: boolean;

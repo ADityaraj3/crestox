@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getOwnerOnboardingState } from "@/apis/owners/ownerActions";
@@ -52,8 +53,13 @@ export const OwnerOverview = () => {
       <div className="space-y-8">
         <OverviewHeader subtitle="Your owner profile is live." />
         <OverviewMessagePanel>
-          Your owner profile has been approved. Head to your collection to manage the works
-          you showcase.
+          Your owner profile has been approved. You can add artworks to your portfolio and sell
+          fractions to collectors, exactly like an artist; proceeds go to your Crestox wallet.
+          <div className="mt-4">
+            <Link href="/portfolio/artwork/create" className="underline underline-offset-4">
+              Add an artwork →
+            </Link>
+          </div>
         </OverviewMessagePanel>
       </div>
     );

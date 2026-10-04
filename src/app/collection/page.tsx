@@ -584,7 +584,22 @@ export interface MyCollectionArtist {
   current_value: string;
   gain_loss: string;
   gain_loss_pct: string;
-  artworks: { artwork_id: number; artwork_name: string; artwork_image_url: string; shares_count: number }[];
+  /** What was actually paid for the held shares, incl. GST and buyer fees. */
+  total_paid?: string;
+  cost_basis_complete?: boolean;
+  artworks: {
+    artwork_id: number;
+    artwork_name: string;
+    artwork_image_url: string;
+    shares_count: number;
+    listed_shares?: number;
+    available_shares?: number;
+    cost_basis?: string;
+    average_cost?: string;
+    current_value?: string;
+    gain_loss?: string;
+    gain_loss_pct?: string;
+  }[];
 }
 
 export interface MyCollectionResponse {
@@ -790,11 +805,17 @@ export default function CollectionPage() {
           artistName={resaleTarget?.artist_name ?? ''}
           artistProfileId={resaleTarget?.artist_profile_id ?? 0}
           maxQuantity={resaleTarget?.available_shares ?? resaleTarget?.total_shares ?? 0}
+          artworks={(resaleTarget?.artworks ?? []).map((a) => ({
+            artwork_id: a.artwork_id,
+            artwork_name: a.artwork_name,
+            available_shares: a.available_shares ?? a.shares_count,
+          }))}
           onSubmit={async (data) => {
-            if (!resaleTarget) return;
+            if (!resaleTarget) return false;
             try {
               await sellFractal({
                 artist_profile_id: resaleTarget.artist_profile_id,
+                ...(data.artworkId ? { artwork_id: data.artworkId } : {}),
                 quantity: data.quantity,
                 listed_price: data.price,
               });

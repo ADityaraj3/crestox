@@ -48,11 +48,43 @@ import { useAppleSignIn } from "@/hooks/useAppleSignIn"
 import { toast } from "sonner"
 
 const formSchema = z.object({
-    firstName: z.string().min(1, { message: "First name is required." }),
-    lastName: z.string().min(1, { message: "Last name is required." }),
+    firstName: z.string().trim().min(1, { message: "First name is required." }),
+    lastName: z.string().trim().min(1, { message: "Last name is required." }),
     email: z.string().email({ message: "Please enter a valid email address." }),
     user_type: z.nativeEnum(UserType).default(UserType.COLLECTOR),
 })
+
+// The page remounts once auth state settles (Suspense + search params), which
+// used to wipe what the user had typed. Keep an in-tab draft so it survives.
+const SIGNUP_DRAFT_KEY = "crestox_signup_draft";
+type SignupDraft = { firstName?: string; lastName?: string; email?: string };
+
+function readSignupDraft(): SignupDraft {
+    if (typeof window === "undefined") return {};
+    try {
+        return JSON.parse(window.sessionStorage.getItem(SIGNUP_DRAFT_KEY) ?? "{}") as SignupDraft;
+    } catch {
+        return {};
+    }
+}
+
+function writeSignupDraft(draft: SignupDraft) {
+    if (typeof window === "undefined") return;
+    try {
+        window.sessionStorage.setItem(SIGNUP_DRAFT_KEY, JSON.stringify(draft));
+    } catch {
+        // Storage unavailable (private mode): the form still works without a draft.
+    }
+}
+
+function clearSignupDraft() {
+    if (typeof window === "undefined") return;
+    try {
+        window.sessionStorage.removeItem(SIGNUP_DRAFT_KEY);
+    } catch {
+        // ignore
+    }
+}
 
 function SignupFormContent() {
     const { requestMagicLink, isLoading, isSuccess, isExistingUser, magicLinkMessage, error, appleSignIn, clearStore } = useAuthStore()
@@ -129,6 +161,18 @@ function SignupFormContent() {
         mode: "onChange"
     })
 
+    // Restore the draft after a remount, then keep it up to date while typing.
+    useEffect(() => {
+        const draft = readSignupDraft();
+        if (draft.firstName && !form.getValues("firstName")) form.setValue("firstName", draft.firstName);
+        if (draft.lastName && !form.getValues("lastName")) form.setValue("lastName", draft.lastName);
+        if (draft.email && !emailFromLogin && !form.getValues("email")) form.setValue("email", draft.email);
+        const sub = form.watch((v) => {
+            writeSignupDraft({ firstName: v.firstName, lastName: v.lastName, email: v.email });
+        });
+        return () => sub.unsubscribe();
+    }, [form, emailFromLogin]);
+
     useEffect(() => {
         if (!emailFromLogin) return;
         form.setValue("email", emailFromLogin);
@@ -140,6 +184,7 @@ function SignupFormContent() {
     async function onSubmit(values: z.infer<typeof formSchema>) {
         const name = `${values.firstName} ${values.lastName}`.trim();
         await requestMagicLink(values.email, name, values.user_type);
+        clearSignupDraft();
         // Re-using this handler for the "edit email" flow on the success screen:
         // once the link is re-sent with the updated email, drop back to the sent view.
         setIsEditing(false);

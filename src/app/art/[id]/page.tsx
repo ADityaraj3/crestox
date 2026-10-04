@@ -86,7 +86,7 @@ function ArtDetailSkeleton() {
   return (
     <main className="bg-void min-h-screen relative">
       <div className="noise-overlay" />
-      <div className="w-full h-[90vh] relative z-20 flex items-center justify-center bg-background/5">
+      <div className="w-full h-[68vh] md:h-[90vh] relative z-0 flex items-center justify-center bg-background/5">
         <Skeleton className="w-full h-full rounded-none" />
       </div>
       <CollectModule
@@ -100,6 +100,7 @@ function ArtDetailSkeleton() {
         isAtwork={false}
         collectContextLabel="Artist"
         forceLoading={true}
+        className="relative z-[90] px-4 pt-4 pb-28 md:px-0 md:pb-0"
       />
       <div className="relative z-10 px-8 md:px-16 py-10 space-y-8">
         <div className="flex gap-4">
@@ -384,7 +385,7 @@ const Index = () => {
     <main className="bg-void min-h-screen relative">
       <div className="noise-overlay" />
 
-      <div className="w-full h-[90vh] relative z-20">
+      <div className="w-full h-[68vh] md:h-[90vh] relative z-0">
         <ExplodedCanvas
           exploded={exploded}
           onToggle={toggleExplode}
@@ -398,7 +399,7 @@ const Index = () => {
           ref={interactionRef}
           onPointerDown={handlePointerDown}
           onPointerUp={handlePointerUp}
-          className={`absolute top-0 left-0 w-full z-20 pointer-events-auto cursor-pointer ${exploded ? "h-[60vh]" : "h-[90vh]"} `}
+          className={`absolute top-0 left-0 w-full z-10 pointer-events-auto cursor-pointer max-md:touch-pan-y ${exploded ? "h-[48vh] md:h-[60vh]" : "h-full"} `}
         />
       </div>
 
@@ -415,6 +416,7 @@ const Index = () => {
           collectContextLabel={artistName || artwork.artist_profile?.artist_name || "Artist"}
           onCollectSuccess={handleCollectSuccess}
           forceLoading={returnRefreshing}
+          className="relative z-[90] px-4 pt-4 pb-28 md:px-0 md:pb-0"
         />
       ) : null}
 

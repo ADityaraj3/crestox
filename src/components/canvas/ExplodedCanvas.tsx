@@ -7,8 +7,21 @@ import { OrbitControls, Html } from '@react-three/drei';
 const GRID_SIZE = 50;
 const TOTAL_SHARDS = GRID_SIZE * GRID_SIZE;
 const ANIMATION_SPEED = 2.0;
-const DEFAULT_CAMERA_POS = new THREE.Vector3(0, 0, 80);
+const DEFAULT_CAMERA_Z = 80;
+const DEFAULT_CAMERA_POS = new THREE.Vector3(0, 0, DEFAULT_CAMERA_Z);
 const DEFAULT_TARGET = new THREE.Vector3(0, 0, 0);
+const CAMERA_FOV = 45;
+
+/** Camera Z that keeps the full shard plane inside the viewport (contain). */
+function getFitCameraZ(viewportAspect: number, imageAspect: number, padding = 1.16): number {
+  const artworkWidth = GRID_SIZE * imageAspect;
+  const artworkHeight = GRID_SIZE;
+  const tanHalfFov = Math.tan(THREE.MathUtils.degToRad(CAMERA_FOV / 2));
+  const safeAspect = Math.max(viewportAspect, 0.01);
+  const zFromHeight = artworkHeight / 2 / tanHalfFov;
+  const zFromWidth = artworkWidth / 2 / (tanHalfFov * safeAspect);
+  return Math.max(zFromHeight, zFromWidth, DEFAULT_CAMERA_Z / padding) * padding;
+}
 
 export enum ImageOrientation {
   PORTRAIT = "PORTRAIT",
@@ -113,11 +126,31 @@ const fragmentShader = `
   }
 `;
 
-function CameraController({ exploded, shouldReset, onResetComplete }: { exploded: boolean, shouldReset: boolean, onResetComplete: () => void }) {
-  const { camera, controls } = useThree();
+function CameraController({
+  exploded,
+  shouldReset,
+  onResetComplete,
+  disableDrag,
+  fitToView,
+  imageAspect,
+}: {
+  exploded: boolean;
+  shouldReset: boolean;
+  onResetComplete: () => void;
+  disableDrag?: boolean;
+  fitToView?: boolean;
+  imageAspect: number;
+}) {
+  const { camera, controls, size } = useThree();
   const isPointerDown = useRef(false);
+  const homePos = useRef(DEFAULT_CAMERA_POS.clone());
 
   useEffect(() => {
+    if (disableDrag) {
+      isPointerDown.current = false;
+      return;
+    }
+
     const handleDown = () => { isPointerDown.current = true; };
     const handleUp = () => { isPointerDown.current = false; };
 
@@ -129,17 +162,33 @@ function CameraController({ exploded, shouldReset, onResetComplete }: { exploded
       window.removeEventListener('pointerdown', handleDown);
       window.removeEventListener('pointerup', handleUp);
     };
-  }, []);
+  }, [disableDrag]);
+
+  useEffect(() => {
+    const next = fitToView
+      ? new THREE.Vector3(0, 0, getFitCameraZ(size.width / Math.max(size.height, 1), imageAspect))
+      : DEFAULT_CAMERA_POS.clone();
+    homePos.current.copy(next);
+    // Snap only when fitting the phone viewport; desktop still uses the original lerp-home path.
+    if (!fitToView) return;
+    camera.position.copy(next);
+    if (controls) {
+      // @ts-ignore
+      controls.target.copy(DEFAULT_TARGET);
+      // @ts-ignore
+      controls.update();
+    }
+  }, [fitToView, size.width, size.height, imageAspect, camera, controls]);
 
   useFrame((state, delta) => {
     // Return camera to home only if image is NOT fractalized
     // AND either shouldReset is true or user is NOT currently dragging
     if (!exploded && (shouldReset || !isPointerDown.current)) {
-      const distance = camera.position.distanceTo(DEFAULT_CAMERA_POS);
+      const distance = camera.position.distanceTo(homePos.current);
 
       // Only lerp if we're not already basically there
       if (distance > 0.05) {
-        camera.position.lerp(DEFAULT_CAMERA_POS, delta * 5);
+        camera.position.lerp(homePos.current, delta * 5);
         if (controls) {
           // @ts-ignore
           controls.target.lerp(DEFAULT_TARGET, delta * 5);
@@ -286,9 +335,13 @@ export default function ExplodedCanvas({
   artworkName,
   dimensions,
 }: ExplodedCanvasProps) {
-  const aspect = ASPECT_VALUES[orientation];
+  const aspect = ASPECT_VALUES[orientation] ?? ASPECT_VALUES[ImageOrientation.PORTRAIT];
   const [shouldReset, setShouldReset] = useState(false);
   const pointerDownPos = useRef({ x: 0, y: 0 });
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches,
+  );
+  const allowOrbit = !isMobile;
 
   // Use a state to force re-render when the ref is populated
   const [, setTick] = useState(0);
@@ -298,15 +351,33 @@ export default function ExplodedCanvas({
     }
   }, [eventSource]);
 
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 767px)');
+    const sync = () => setIsMobile(mql.matches);
+    sync();
+    mql.addEventListener('change', sync);
+    return () => mql.removeEventListener('change', sync);
+  }, []);
+
+  // OrbitControls writes inline touch-action: none; restore vertical scroll on mobile.
+  useEffect(() => {
+    const el = eventSource?.current;
+    if (!el || allowOrbit) return;
+    el.style.touchAction = 'pan-y';
+    return () => {
+      el.style.touchAction = '';
+    };
+  }, [allowOrbit, eventSource]);
+
 
   return (
-    <div className="relative w-full h-full bg-black">
+    <div className="relative w-full h-full bg-black max-md:touch-pan-y">
       <Canvas
         dpr={[1, 2]}
-        camera={{ position: [0, 0, 80], fov: 45 }}
+        camera={{ position: [0, 0, DEFAULT_CAMERA_Z], fov: CAMERA_FOV }}
         gl={{ antialias: true, alpha: false }}
         eventSource={eventSource?.current || undefined}
-        className="cursor-pointer"
+        className="cursor-pointer max-md:touch-pan-y"
       >
         <color attach="background" args={['#050505']} />
         <ambientLight intensity={1.5} />
@@ -316,6 +387,9 @@ export default function ExplodedCanvas({
           exploded={exploded}
           shouldReset={shouldReset}
           onResetComplete={() => setShouldReset(false)}
+          disableDrag={!allowOrbit}
+          fitToView={isMobile}
+          imageAspect={aspect}
         />
         <ArtworkShards exploded={exploded} textureUrl={artworkUrl} aspect={aspect} />
 
@@ -354,16 +428,18 @@ export default function ExplodedCanvas({
         <OrbitControls
           makeDefault
           enablePan={false}
-          enableZoom={exploded}
+          enableRotate={allowOrbit}
+          enableZoom={allowOrbit && exploded}
           minDistance={40}
-          maxDistance={150}
+          maxDistance={isMobile ? 400 : 150}
           minPolarAngle={0.1}
           maxPolarAngle={Math.PI - 0.1}
           autoRotate={exploded}
           autoRotateSpeed={0.5}
           dampingFactor={0.05}
-          onStart={() => setShouldReset(false)}
-          domElement={eventSource?.current || undefined}
+          onStart={allowOrbit ? () => setShouldReset(false) : undefined}
+          // Keep controls off the overlay on mobile so a scroll cannot orbit the camera.
+          domElement={allowOrbit ? (eventSource?.current || undefined) : undefined}
         />
       </Canvas>
       {artworkName && (

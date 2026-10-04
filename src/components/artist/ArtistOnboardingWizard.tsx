@@ -41,23 +41,24 @@ import { uploadMedia } from "@/apis/media/mediaActions";
 import { toast } from "sonner";
 import { useUserStore } from "@/store/useUserStore";
 import { cn } from "@/lib/utils";
+import { optionalAmount, optionalSocial, optionalUrl, optionalYears, requiredText, toSocialUrl } from "@/utils/formValidation";
 
 const profileFormSchema = z.object({
-  artistName: z.string().min(1, { message: "Artist name is required." }),
-  bio: z.string().min(1, { message: "Bio is required." }),
+  artistName: requiredText("Artist name is required."),
+  bio: requiredText("Bio is required."),
   avatar_media_id: z.string().optional(),
   collectorMessage: z.string().optional(),
-  twitter: z.string().optional(),
-  instagram: z.string().optional(),
-  linkedin: z.string().optional(),
+  twitter: optionalSocial,
+  instagram: optionalSocial,
+  linkedin: optionalSocial,
   location: z.string().optional(),
   university: z.string().optional(),
-  portfolioUrl: z.string().optional(),
+  portfolioUrl: optionalUrl,
   artisticStyle: z.string().optional(),
   awards: z
     .array(
       z.object({
-        name: z.string().min(1, { message: "Award name is required." }),
+        name: requiredText("Award name is required."),
         file: z.any().optional(),
         existing_media_id: z.number().optional(),
       }).refine((data) => !!data.file || !!data.existing_media_id, {
@@ -69,7 +70,7 @@ const profileFormSchema = z.object({
   exhibitions: z
     .array(
       z.object({
-        name: z.string().min(1, { message: "Exhibition name is required." }),
+        name: requiredText("Exhibition name is required."),
         file: z.any().optional(),
         existing_media_id: z.number().optional(),
       }),
@@ -78,10 +79,10 @@ const profileFormSchema = z.object({
   soldArtworks: z
     .array(
       z.object({
-        name: z.string().min(1, { message: "Artwork name is required." }),
+        name: requiredText("Artwork name is required."),
         image: z.any().optional(),
         proofOfSale: z.any().optional(),
-        saleValue: z.string().optional(),
+        saleValue: optionalAmount,
         existing_image_media_id: z.number().optional(),
         existing_proof_media_id: z.number().optional(),
       }),
@@ -286,7 +287,7 @@ export default function ArtistOnboardingWizard({ variant = "portfolio", classNam
       ...defaults,
       ...mapped,
       ...(keepPrefillName ? { artistName: defaults.artistName } : {}),
-    });
+    }, { keepDirtyValues: true });
 
     setActiveStep(Math.min(3, Math.max(1, onboarding.last_completed_step + 1)));
 
@@ -577,16 +578,16 @@ export default function ArtistOnboardingWizard({ variant = "portfolio", classNam
     setSubmitting(true);
     try {
       const social_links = [
-        ...(values.twitter?.trim() ? [{ platform: "twitter", url: values.twitter.trim() }] : []),
-        ...(values.instagram?.trim() ? [{ platform: "instagram", url: values.instagram.trim() }] : []),
-        ...(values.linkedin?.trim() ? [{ platform: "linkedin", url: values.linkedin.trim() }] : []),
+        ...(values.twitter?.trim() ? [{ platform: "twitter", url: toSocialUrl("twitter", values.twitter) }] : []),
+        ...(values.instagram?.trim() ? [{ platform: "instagram", url: toSocialUrl("instagram", values.instagram) }] : []),
+        ...(values.linkedin?.trim() ? [{ platform: "linkedin", url: toSocialUrl("linkedin", values.linkedin) }] : []),
       ];
 
       await submitArtistOnboardingStep3({
         social_links,
         location: values.location || undefined,
         university: values.university || undefined,
-        website_portfolio_link: values.portfolioUrl || undefined,
+        website_portfolio_link: values.portfolioUrl?.trim() || undefined,
         artist_style: values.artisticStyle || undefined,
       })();
       await fetchProfile();

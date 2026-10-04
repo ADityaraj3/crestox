@@ -18,6 +18,7 @@ import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { usePasskeyAuth } from "@/hooks/usePasskeyAuth";
 import { toast } from "sonner";
+import { BillingDetailsCard } from "./BillingDetailsCard";
 import {
   getNotificationPreferences,
   updateNotificationPreferences,
@@ -300,6 +301,8 @@ export const SettingsTab = () => {
           </button>
         </div>
       </motion.div>
+
+      <BillingDetailsCard />
 
       {/* Payment Methods */}
       <motion.div

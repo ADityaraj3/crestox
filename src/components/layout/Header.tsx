@@ -221,7 +221,7 @@ export function Header() {
         </div>
       </nav>
       {/* Mobile/Tablet Bottom Nav — below lg */}
-      <div className="lg:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
+      <div className="lg:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-[200]">
         <div className="flex items-center gap-4 px-6 py-3 rounded-2xl bg-card/90 dark:bg-background/80 backdrop-blur-lg border border-border dark:border-border/50 shadow-lg shadow-foreground/5 dark:shadow-sm dark:shadow-transparent">
           {data.map((item, idx) =>
             item.href ? (

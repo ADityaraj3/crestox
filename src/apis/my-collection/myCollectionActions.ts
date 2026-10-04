@@ -74,6 +74,11 @@ export interface HoldingCertificateData {
     auth_number: string;
     share_count: number;
     issued_at: string;
+    reissue_count?: number;
+    last_reissued_at?: string | null;
+    /** Service fee before GST, e.g. "99.00". */
+    reissue_fee?: string;
+    reissue_fee_gst_rate?: number;
     owner: { id: number; name: string };
     artist: {
         id: number;
@@ -91,4 +96,29 @@ export const getHoldingCertificate = async (
         myCollectionURLS.HOLDING_CERTIFICATE(artistProfileId),
     );
     return (response.data?.data ?? response.data) as HoldingCertificateData;
+};
+
+export interface CertificateReissueOrder {
+    razorpay_order_id: string;
+    razorpay_key_id: string;
+    amount: string;
+    fee: string;
+    gst: string;
+    currency: string;
+    artist_profile_id: number;
+}
+
+/** Starts a paid (₹99 + GST) reissue: returns a Razorpay order to pay. */
+export const initiateCertificateReissue = async (artistProfileId: number): Promise<CertificateReissueOrder> => {
+    const response = await instance.post(myCollectionURLS.CERTIFICATE_REISSUE(artistProfileId));
+    return (response.data?.data ?? response.data) as CertificateReissueOrder;
+};
+
+export const completeCertificateReissue = async (data: {
+    razorpay_order_id: string;
+    razorpay_payment_id?: string;
+    razorpay_signature?: string;
+}): Promise<{ status: string; message: string; auth_number?: string }> => {
+    const response = await instance.post(myCollectionURLS.CERTIFICATE_REISSUE_COMPLETE, data);
+    return response.data?.data ?? response.data;
 };

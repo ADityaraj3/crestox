@@ -7,6 +7,8 @@ import {
   getBuyOrderStatus,
   initiateBuyOrder,
   completeBuyOrder,
+  cancelBuyOrder,
+  HIGH_VOLATILITY_ACK_REQUIRED,
   type BufferPriceQuote,
   type InitiateBuyResponse,
   type CompleteBuyOrderResponse,
@@ -81,6 +83,10 @@ const CollectModule: React.FC<CollectModuleProps> = ({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [collecting, setCollecting] = useState(false);
   const [initiatedOrder, setInitiatedOrder] = useState<InitiateBuyResponse | null>(null);
+  // High Volatility Warning (Dynamic Buffer Addendum): the buyer must confirm
+  // before an order is accepted when the computed buffer exceeds the 15% ceiling.
+  const [highVolAcknowledged, setHighVolAcknowledged] = useState(false);
+  const [highVolRequired, setHighVolRequired] = useState(false);
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
   // True while a Razorpay payment is in flight (checkout opened, outcome not yet known).
   // Lets us tell a genuine "still fetching the first quote" skeleton apart from a
@@ -237,7 +243,22 @@ const CollectModule: React.FC<CollectModuleProps> = ({
 
   useEffect(() => {
     setInitiatedOrder(null);
+    setHighVolAcknowledged(false);
+    setHighVolRequired(false);
   }, [firstArtworkId, effectiveQty]);
+
+  const needsHighVolAck = Boolean(quote?.high_volatility_warning) || highVolRequired;
+
+  /** Releases the reservation of an order that was initiated but never paid. */
+  const releaseUnpaidOrder = useCallback(async (razorpayOrderId: string | undefined) => {
+    if (!razorpayOrderId) return null;
+    try {
+      return await cancelBuyOrder(razorpayOrderId)();
+    } catch {
+      // The sweeper expires it after 30 minutes anyway.
+      return null;
+    }
+  }, []);
 
   const baseAmount = effectiveQty * currentPrice;
   const hasFillPreview = Boolean(quote?.fill_breakdown?.length) && quote?.fill_subtotal_pre_tax != null && quote?.fill_total_buyer_pays != null;
@@ -399,6 +420,9 @@ const CollectModule: React.FC<CollectModuleProps> = ({
 
   const handleDialogOpenChange = (open: boolean) => {
     if (!open && !paymentPendingRef.current) {
+      // Closing after "Review secure charge" but before paying: give the
+      // reserved fractals back right away instead of after the 30-minute expiry.
+      void releaseUnpaidOrder(initiatedOrder?.razorpay_order_id);
       setInitiatedOrder(null);
       clearPurchasePending();
     }
@@ -434,6 +458,11 @@ const CollectModule: React.FC<CollectModuleProps> = ({
 
     const quotedFractalPrice = quote?.current_price ?? 0;
 
+    if (needsHighVolAck && !highVolAcknowledged) {
+      toast.error('Confirm the high-volatility warning to continue.');
+      return;
+    }
+
     collectInFlightRef.current = true;
     setCollecting(true);
 
@@ -442,8 +471,8 @@ const CollectModule: React.FC<CollectModuleProps> = ({
         const orderData = await initiateBuyOrder({
           artwork_id: artworkId,
           quantity: effectiveQty,
-          max_slippage_pct: 5,
           quoted_price: quotedFractalPrice,
+          ...(highVolAcknowledged ? { acknowledge_high_volatility: true } : {}),
         })();
 
         setInitiatedOrder(orderData);
@@ -493,7 +522,6 @@ const CollectModule: React.FC<CollectModuleProps> = ({
                 razorpay_order_id: orderData.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
-                max_slippage_pct: 5,
                 quoted_price: quotedFractalPrice,
                 payment_response: response,
               })();
@@ -501,11 +529,23 @@ const CollectModule: React.FC<CollectModuleProps> = ({
               await handleCompletedOrder(completed);
             } catch (err: any) {
               const s = err?.response?.status;
-              toast.info(s === 401 || s === 403 ? NOT_LOGGED_IN_BUY_MESSAGE : 'Payment received. We are confirming the order status.');
-              setCollecting(false);
+              const serverMessage: string | undefined = err?.response?.data?.message;
               if (s === 401 || s === 403) {
+                toast.info(NOT_LOGGED_IN_BUY_MESSAGE);
                 terminalConfirmed = true;
+              } else if (s === 400 && serverMessage) {
+                // A definite outcome from the server, e.g. the price moved past
+                // the buffer and the payment is being refunded in full.
+                toast.error(serverMessage);
+                terminalConfirmed = true;
+                setInitiatedOrder(null);
+                void fetchQuote(artworkId, 1, 'silent');
+              } else {
+                // Network/5xx: the payment may still settle via the webhook;
+                // the status poller takes over.
+                toast.info('Payment received. Confirming your order…');
               }
+              setCollecting(false);
             } finally {
               paymentPendingRef.current = !terminalConfirmed;
               if (terminalConfirmed) {
@@ -520,7 +560,16 @@ const CollectModule: React.FC<CollectModuleProps> = ({
               clearPurchasePending();
               setForceRefreshSkeleton(false);
               setCollecting(false);
-              toast.info('Payment cancelled');
+              setInitiatedOrder(null);
+              void releaseUnpaidOrder(orderData.razorpay_order_id).then((res) => {
+                if (res && (res.status === 'COMPLETED' || res.status === 'ALREADY_COMPLETED')) {
+                  toast.success('Payment received. Your fractals have been collected.');
+                  onCollectSuccess?.({ status: 'COMPLETED' });
+                } else {
+                  toast.info('Checkout closed. No payment was taken and the reserved fractals were released.');
+                }
+                void fetchQuote(artworkId, 1, 'silent');
+              });
             },
           },
           theme: {
@@ -547,7 +596,6 @@ const CollectModule: React.FC<CollectModuleProps> = ({
             razorpay_order_id: orderData.razorpay_order_id,
             razorpay_payment_id: mockPaymentId,
             razorpay_signature: mockSignature,
-            max_slippage_pct: 5,
             quoted_price: quotedFractalPrice,
           })();
 
@@ -559,6 +607,12 @@ const CollectModule: React.FC<CollectModuleProps> = ({
       }
     } catch (err: any) {
       const s = err?.response?.status;
+      if (s === 409 && err?.response?.data?.data?.code === HIGH_VOLATILITY_ACK_REQUIRED) {
+        setHighVolRequired(true);
+        toast.warning(err?.response?.data?.message ?? 'High volatility: please confirm to continue.');
+        setCollecting(false);
+        return;
+      }
       toast.error(s === 401 || s === 403 ? NOT_LOGGED_IN_BUY_MESSAGE : (err?.response?.data?.message ?? 'Failed to complete purchase'));
       setCollecting(false);
     } finally {
@@ -566,7 +620,7 @@ const CollectModule: React.FC<CollectModuleProps> = ({
     }
   };
 
-  const asideClass = layout === 'floating' ? 'relative lg:fixed lg:left-auto lg:right-8 lg:bottom-8 lg:top-auto z-50 w-full lg:w-[340px]' : 'w-full';
+  const asideClass = layout === 'floating' ? 'relative lg:fixed lg:left-auto lg:right-8 lg:bottom-8 lg:top-auto z-[90] w-full lg:w-[340px]' : 'w-full';
 
   const innerSurface = layout === 'floating' ? 'glass-panel border border-foreground/10 bg-background/80' : 'bg-white dark:bg-[#0B1120] border border-slate-200 dark:border-[#1E293B]';
 
@@ -722,7 +776,7 @@ const CollectModule: React.FC<CollectModuleProps> = ({
                     <span className="text-sm text-zinc-300">
                       {effectiveQty} × @ {'\u20B9'}
                       {currentPrice.toFixed(2)}
-                      <span className="ml-1 text-[10px] font-mono uppercase tracking-wider text-zinc-500">±{bufferPercent.toFixed(2)}</span>
+
                     </span>
                     <span className="text-xs font-medium text-zinc-400">—</span>
                   </div>
@@ -745,11 +799,10 @@ const CollectModule: React.FC<CollectModuleProps> = ({
                         {formatCurrencyWithSmallDecimals(subTotalPreTax)}
                       </span>
                     )}
-                    {!showDialogQuoteSkeleton && <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">±{bufferPercent.toFixed(2)}</span>}
                   </div>
                 </div>
                 <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>{hasFillPreview ? 'Taxes & fees' : 'G.S.T. (18%)'}</span>
+                  <span>{hasFillPreview ? 'GST & buyer fee' : 'G.S.T. (18%)'}</span>
                   {showDialogQuoteSkeleton ? (
                     <Skeleton className="h-5 w-16 bg-muted" />
                   ) : (
@@ -771,9 +824,36 @@ const CollectModule: React.FC<CollectModuleProps> = ({
                         {formatCurrencyWithSmallDecimals(totalPayableInr)}
                       </span>
                     )}
-                    {!showDialogQuoteSkeleton && <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">±{bufferPercent.toFixed(2)}</span>}
                   </div>
                 </div>
+                {!initiatedOrder && !showDialogQuoteSkeleton && quote?.max_charge ? (
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>
+                      Charged now (estimate + {bufferPercent.toFixed(2)}% price buffer)
+                    </span>
+                    <span className="font-mono text-foreground">₹{parseFloat(quote.max_charge).toFixed(2)}</span>
+                  </div>
+                ) : null}
+                {!initiatedOrder && !showDialogQuoteSkeleton ? (
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">
+                    The buffer covers price moves from other buyers before your order fills. Anything not used is refunded automatically; if the price moves further, the order is cancelled and refunded in full.
+                  </p>
+                ) : null}
+                {needsHighVolAck && !showDialogQuoteSkeleton ? (
+                  <label className="flex items-start gap-2 rounded-xl border border-red-500/40 bg-red-500/5 p-3 text-xs text-foreground">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5"
+                      checked={highVolAcknowledged}
+                      onChange={(e) => setHighVolAcknowledged(e.target.checked)}
+                      disabled={initiatedOrder != null}
+                    />
+                    <span>
+                      <strong>High volatility.</strong> This artwork&apos;s price is moving fast
+                      {quote?.raw_buffer_percent != null ? ` (expected swing ${quote.raw_buffer_percent.toFixed(2)}%)` : ''}. Your order is more likely to be cancelled and refunded if the price moves beyond the buffer. I understand and want to continue.
+                    </span>
+                  </label>
+                ) : null}
                 {initiatedOrder ? (
                   <div className="space-y-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-xs">
                     <div className="flex justify-between gap-4 text-muted-foreground">
@@ -803,7 +883,7 @@ const CollectModule: React.FC<CollectModuleProps> = ({
               <Button
                 type="button"
                 className="h-11 rounded-lg bg-primary px-6 font-medium text-primary-foreground hover:bg-primary/90"
-                disabled={collecting || !razorpayLoaded || showDialogQuoteSkeleton || effectiveQty < 1 || quote?.sufficient_for_quantity === false}
+                disabled={collecting || !razorpayLoaded || showDialogQuoteSkeleton || effectiveQty < 1 || quote?.sufficient_for_quantity === false || (needsHighVolAck && !highVolAcknowledged)}
                 onClick={handleCollectConfirm}
               >
                 {collecting

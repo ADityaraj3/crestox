@@ -20,4 +20,5 @@ export const ARTIST_URLS = {
     INITIATE_BUY: `/trading/buy/initiate`,
     COMPLETE_BUY: `/trading/buy/complete`,
     BUY_STATUS: (razorpayOrderId: string) => `/trading/buy/status/${encodeURIComponent(razorpayOrderId)}`,
+    CANCEL_BUY: (razorpayOrderId: string) => `/trading/buy/cancel/${encodeURIComponent(razorpayOrderId)}`,
 };

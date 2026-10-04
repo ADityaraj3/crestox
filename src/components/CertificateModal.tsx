@@ -2,10 +2,12 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Copy, Download, X } from 'lucide-react';
+import { Copy, Download, RefreshCw, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import {
+  completeCertificateReissue,
+  initiateCertificateReissue,
   getHoldingCertificate,
   type HoldingCertificateData,
 } from '@/apis/my-collection/myCollectionActions';
@@ -35,7 +37,13 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
   const [certificate, setCertificate] = useState<HoldingCertificateData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [reissueStep, setReissueStep] = useState<'idle' | 'confirm' | 'paying'>('idle');
+  const [reloadKey, setReloadKey] = useState(0);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) setReissueStep('idle');
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen || !artistProfileId) return;
@@ -61,7 +69,7 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, artistProfileId, onClose]);
+  }, [isOpen, artistProfileId, onClose, reloadKey]);
 
   const issuedDate = certificate?.issued_at
     ? format(new Date(certificate.issued_at), 'MMMM d, yyyy')
@@ -73,6 +81,75 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
   const ownerName = certificate?.owner.name ?? 'Collector';
   const shareCount = certificate?.share_count ?? 0;
   const displayArtistName = certificate?.artist.artist_name ?? artistName;
+
+  const reissueFee = parseFloat(certificate?.reissue_fee ?? '99');
+  const reissueTotal = reissueFee * (1 + (certificate?.reissue_fee_gst_rate ?? 18) / 100);
+
+  const loadCheckout = useCallback(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        if (typeof window === 'undefined') return reject(new Error('No window'));
+        if (window.Razorpay) return resolve();
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.async = true;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('Could not load Razorpay'));
+        document.body.appendChild(script);
+      }),
+    [],
+  );
+
+  const finishReissue = useCallback(
+    async (data: { razorpay_order_id: string; razorpay_payment_id?: string; razorpay_signature?: string }) => {
+      try {
+        const res = await completeCertificateReissue(data);
+        if (res.status === 'COMPLETED' || res.status === 'ALREADY_COMPLETED') {
+          toast.success('Certificate reissued with a new authentication number.');
+          setReloadKey((k) => k + 1);
+        } else {
+          toast.info(res.message ?? 'Payment received. Your certificate will be reissued shortly.');
+        }
+      } catch (err: any) {
+        toast.error(err?.response?.data?.message ?? 'Could not reissue the certificate.');
+      } finally {
+        setReissueStep('idle');
+      }
+    },
+    [],
+  );
+
+  const handleReissue = useCallback(async () => {
+    setReissueStep('paying');
+    try {
+      const order = await initiateCertificateReissue(artistProfileId);
+      if (order.razorpay_order_id.startsWith('mock_order_')) {
+        await finishReissue({ razorpay_order_id: order.razorpay_order_id });
+        return;
+      }
+      await loadCheckout();
+      const rzp = new window.Razorpay({
+        key: order.razorpay_key_id,
+        amount: Math.round(parseFloat(order.amount) * 100),
+        currency: order.currency,
+        name: 'Crestox',
+        description: 'Holding certificate reissue',
+        order_id: order.razorpay_order_id,
+        handler: (response: any) =>
+          finishReissue({
+            razorpay_order_id: order.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+          }),
+        modal: { ondismiss: () => setReissueStep('idle') },
+        theme: { color: '#3B82F6' },
+      });
+      rzp.open();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? err?.message ?? 'Could not start the reissue.');
+      setReissueStep('idle');
+    }
+  }, [artistProfileId, finishReissue, loadCheckout]);
 
   const handleCopyAuthNumber = useCallback(async () => {
     if (!certificate) return;
@@ -257,8 +334,42 @@ const CertificateModal: React.FC<CertificateModalProps> = ({
                 ) : null}
               </div>
 
+              {certificate && !isLoading && reissueStep === 'confirm' && (
+                <div className="px-6 pt-4 text-xs text-muted-foreground border-t border-border/40 bg-card/80">
+                  Reissuing replaces your current authentication number (the old one stops verifying). Fee: ₹
+                  {reissueFee.toFixed(2)} + GST = ₹{reissueTotal.toFixed(2)}, paid via Razorpay.
+                </div>
+              )}
               {certificate && !isLoading && (
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 p-6 border-t border-border/40 bg-card/80">
+                  {reissueStep === 'confirm' ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setReissueStep('idle')}
+                        className="px-5 py-3 border border-border text-foreground font-cyber text-xs uppercase tracking-widest"
+                      >
+                        Keep current
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleReissue}
+                        className="flex items-center justify-center gap-2 px-5 py-3 bg-primary text-primary-foreground font-cyber text-xs uppercase tracking-widest font-bold"
+                      >
+                        Pay ₹{reissueTotal.toFixed(2)} and reissue
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setReissueStep('confirm')}
+                      disabled={reissueStep === 'paying'}
+                      className="flex items-center justify-center gap-2 px-5 py-3 border border-border text-foreground font-cyber text-xs uppercase tracking-widest hover:border-primary hover:text-primary transition-colors disabled:opacity-50"
+                    >
+                      <RefreshCw size={16} />
+                      {reissueStep === 'paying' ? 'Opening payment…' : 'Reissue'}
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={handleDownloadPdf}

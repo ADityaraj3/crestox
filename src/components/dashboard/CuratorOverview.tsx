@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getCuratorOnboardingState } from "@/apis/curators/curatorActions";
@@ -52,8 +53,13 @@ export const CuratorOverview = () => {
       <div className="space-y-8">
         <OverviewHeader subtitle="Your curator profile is live." />
         <OverviewMessagePanel>
-          Your curator profile has been approved. Head to your collection to manage the
-          exhibitions and works you feature.
+          Your curator profile has been approved. You can add artworks to your portfolio and sell
+          fractions to collectors, exactly like an artist; proceeds go to your Crestox wallet.
+          <div className="mt-4">
+            <Link href="/portfolio/artwork/create" className="underline underline-offset-4">
+              Add an artwork →
+            </Link>
+          </div>
         </OverviewMessagePanel>
       </div>
     );

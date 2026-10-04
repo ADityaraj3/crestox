@@ -4,6 +4,7 @@ import { useEffect, Suspense, useRef } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { useAuthStore } from "@/store/useAuthStore"
 import { useUserStore } from "@/store/useUserStore"
+import { consumeReturnTo } from "@/utils/returnTo"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { LoaderCircleIcon, CheckCircle2, XCircle } from "lucide-react"
 import { UserType } from "@/enums/userType"
@@ -26,6 +27,13 @@ function VerifyContent() {
                     // so the page we redirect to renders its loading skeleton instead of the
                     // signed-out "Sign in" state before the Header's effect kicks in.
                     void useUserStore.getState().initialize();
+
+                    // A page that needed sign-in (e.g. an emailed price-approval link) comes first.
+                    const returnTo = consumeReturnTo();
+                    if (returnTo) {
+                        router.push(returnTo);
+                        return;
+                    }
 
                     const types = verifyResult.userTypes as string[];
                     const isArtist = types.includes(UserType.ARTIST) || types.includes("artist");

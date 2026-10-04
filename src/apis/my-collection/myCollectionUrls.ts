@@ -6,4 +6,7 @@ export const myCollectionURLS = {
     ADD_TO_WATCHLIST: "/trading/watchlist",
     HOLDING_CERTIFICATE: (artistProfileId: number) =>
         `/trading/certificate/artist/${artistProfileId}`,
+    CERTIFICATE_REISSUE: (artistProfileId: number) =>
+        `/trading/certificate/artist/${artistProfileId}/reissue`,
+    CERTIFICATE_REISSUE_COMPLETE: "/trading/certificate/reissue/complete",
 }

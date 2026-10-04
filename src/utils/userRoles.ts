@@ -34,9 +34,17 @@ export function getRoleSlugs(
  * Returns `null` when the user has no creator role (e.g. a pure collector).
  */
 export function getPrimaryCreatorRole(
-  user: Pick<User, "roles"> | null | undefined,
+  user: Pick<User, "roles" | "artist_creator_type" | "artist_profile_approved"> | null | undefined,
 ): CreatorRole | null {
   const slugs = getRoleSlugs(user);
+  // Curators and owners get an artist-type selling profile (and the artist
+  // role) when they finish onboarding. Once approved they use the full artist
+  // dashboard; until then they see their own application status.
+  const creatorType = user?.artist_creator_type;
+  if (creatorType === "CURATOR" || creatorType === "OWNER") {
+    if (user?.artist_profile_approved) return "artist";
+    return creatorType === "CURATOR" ? "curator" : "owner";
+  }
   if (slugs.includes("artist")) return "artist";
   if (slugs.includes("curator") || slugs.includes("curators")) return "curator";
   if (slugs.includes("owner")) return "owner";

@@ -40,24 +40,25 @@ import { uploadMedia } from "@/apis/media/mediaActions";
 import { toast } from "sonner";
 import { useUserStore } from "@/store/useUserStore";
 import { cn } from "@/lib/utils";
+import { optionalAmount, optionalSocial, optionalUrl, optionalYears, requiredText, toSocialUrl } from "@/utils/formValidation";
 
 const profileFormSchema = z.object({
-  curatorName: z.string().min(1, { message: "Curator name is required." }),
-  bio: z.string().min(1, { message: "Bio is required." }),
+  curatorName: requiredText("Curator name is required."),
+  bio: requiredText("Bio is required."),
   avatar_media_id: z.string().optional(),
   collectorMessage: z.string().optional(),
-  twitter: z.string().optional(),
-  instagram: z.string().optional(),
-  linkedin: z.string().optional(),
+  twitter: optionalSocial,
+  instagram: optionalSocial,
+  linkedin: optionalSocial,
   location: z.string().optional(),
-  portfolioUrl: z.string().optional(),
+  portfolioUrl: optionalUrl,
   curatorialFocus: z.string().optional(),
-  yearsOfExperience: z.string().optional(),
+  yearsOfExperience: optionalYears,
   institutionAffiliation: z.string().optional(),
   exhibitions: z
     .array(
       z.object({
-        name: z.string().min(1, { message: "Exhibition title is required." }),
+        name: requiredText("Exhibition title is required."),
         file: z.any().optional(),
         existing_media_id: z.number().optional(),
       }),
@@ -66,7 +67,7 @@ const profileFormSchema = z.object({
   publications: z
     .array(
       z.object({
-        name: z.string().min(1, { message: "Publication title is required." }),
+        name: requiredText("Publication title is required."),
         file: z.any().optional(),
         existing_media_id: z.number().optional(),
       }),
@@ -258,7 +259,7 @@ export default function CuratorOnboardingWizard({ variant = "portfolio", classNa
       ...defaults,
       ...mapped,
       ...(keepPrefillName ? { curatorName: defaults.curatorName } : {}),
-    });
+    }, { keepDirtyValues: true });
 
     setActiveStep(Math.min(3, Math.max(1, onboarding.last_completed_step + 1)));
 
@@ -463,15 +464,15 @@ export default function CuratorOnboardingWizard({ variant = "portfolio", classNa
     setSubmitting(true);
     try {
       const social_links = [
-        ...(values.twitter?.trim() ? [{ platform: "twitter", url: values.twitter.trim() }] : []),
-        ...(values.instagram?.trim() ? [{ platform: "instagram", url: values.instagram.trim() }] : []),
-        ...(values.linkedin?.trim() ? [{ platform: "linkedin", url: values.linkedin.trim() }] : []),
+        ...(values.twitter?.trim() ? [{ platform: "twitter", url: toSocialUrl("twitter", values.twitter) }] : []),
+        ...(values.instagram?.trim() ? [{ platform: "instagram", url: toSocialUrl("instagram", values.instagram) }] : []),
+        ...(values.linkedin?.trim() ? [{ platform: "linkedin", url: toSocialUrl("linkedin", values.linkedin) }] : []),
       ];
 
       await submitCuratorOnboardingStep3({
         social_links,
         location: values.location || undefined,
-        website_portfolio_link: values.portfolioUrl || undefined,
+        website_portfolio_link: values.portfolioUrl?.trim() || undefined,
         curatorial_focus: values.curatorialFocus || undefined,
         years_of_experience: values.yearsOfExperience ? parseInt(values.yearsOfExperience, 10) : undefined,
         institution_affiliation: values.institutionAffiliation || undefined,

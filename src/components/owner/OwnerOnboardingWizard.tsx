@@ -40,36 +40,43 @@ import { uploadMedia } from "@/apis/media/mediaActions";
 import { toast } from "sonner";
 import { useUserStore } from "@/store/useUserStore";
 import { cn } from "@/lib/utils";
+import { optionalAmount, optionalSocial, optionalUrl, optionalYears, requiredText, toSocialUrl } from "@/utils/formValidation";
 
 const profileFormSchema = z.object({
-  ownerName: z.string().min(1, { message: "Owner name is required." }),
-  bio: z.string().min(1, { message: "Bio is required." }),
+  ownerName: requiredText("Owner name is required."),
+  bio: requiredText("Bio is required."),
   avatar_media_id: z.string().optional(),
   collectorMessage: z.string().optional(),
-  twitter: z.string().optional(),
-  instagram: z.string().optional(),
-  linkedin: z.string().optional(),
+  twitter: optionalSocial,
+  instagram: optionalSocial,
+  linkedin: optionalSocial,
   location: z.string().optional(),
-  portfolioUrl: z.string().optional(),
+  portfolioUrl: optionalUrl,
   collectionFocus: z.string().optional(),
-  yearsCollecting: z.string().optional(),
+  yearsCollecting: optionalYears,
   collectionSize: z.string().optional(),
   ownedWorks: z
     .array(
-      z.object({
-        name: z.string().min(1, { message: "Artwork name is required." }),
-        image: z.any().optional(),
-        proofOfSale: z.any().optional(),
-        acquisitionValue: z.string().optional(),
-        existing_image_media_id: z.number().optional(),
-        existing_proof_media_id: z.number().optional(),
-      }),
+      z
+        .object({
+          name: requiredText("Artwork name is required."),
+          image: z.any().optional(),
+          proofOfSale: z.any().optional(),
+          acquisitionValue: optionalAmount,
+          existing_image_media_id: z.number().optional(),
+          existing_proof_media_id: z.number().optional(),
+        })
+        // Provenance is what admins approve an owner on; the server requires it too.
+        .refine((w) => Boolean(w.proofOfSale) || w.existing_proof_media_id != null, {
+          message: "Upload a proof of ownership for this work.",
+          path: ["proofOfSale"],
+        }),
     )
     .optional(),
   highlights: z
     .array(
       z.object({
-        name: z.string().min(1, { message: "Highlight title is required." }),
+        name: requiredText("Highlight title is required."),
         file: z.any().optional(),
         existing_media_id: z.number().optional(),
       }),
@@ -264,7 +271,7 @@ export default function OwnerOnboardingWizard({ variant = "portfolio", className
       ...defaults,
       ...mapped,
       ...(keepPrefillName ? { ownerName: defaults.ownerName } : {}),
-    });
+    }, { keepDirtyValues: true });
 
     setActiveStep(Math.min(3, Math.max(1, onboarding.last_completed_step + 1)));
 
@@ -489,15 +496,15 @@ export default function OwnerOnboardingWizard({ variant = "portfolio", className
     setSubmitting(true);
     try {
       const social_links = [
-        ...(values.twitter?.trim() ? [{ platform: "twitter", url: values.twitter.trim() }] : []),
-        ...(values.instagram?.trim() ? [{ platform: "instagram", url: values.instagram.trim() }] : []),
-        ...(values.linkedin?.trim() ? [{ platform: "linkedin", url: values.linkedin.trim() }] : []),
+        ...(values.twitter?.trim() ? [{ platform: "twitter", url: toSocialUrl("twitter", values.twitter) }] : []),
+        ...(values.instagram?.trim() ? [{ platform: "instagram", url: toSocialUrl("instagram", values.instagram) }] : []),
+        ...(values.linkedin?.trim() ? [{ platform: "linkedin", url: toSocialUrl("linkedin", values.linkedin) }] : []),
       ];
 
       await submitOwnerOnboardingStep3({
         social_links,
         location: values.location || undefined,
-        website_portfolio_link: values.portfolioUrl || undefined,
+        website_portfolio_link: values.portfolioUrl?.trim() || undefined,
         collection_focus: values.collectionFocus || undefined,
         years_collecting: values.yearsCollecting ? parseInt(values.yearsCollecting, 10) : undefined,
         collection_size: values.collectionSize || undefined,

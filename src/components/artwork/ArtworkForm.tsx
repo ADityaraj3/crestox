@@ -1,13 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { PlusCircle, Upload, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
-import { ARTIST_PROFILE_ID_KEY } from "@/utils/artistProfileStorage"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -44,22 +43,34 @@ const mediaItemSchema = z.object({
     file_path: z.string(),
 })
 
+// Dimensions are stored with 2 decimals (e.g. 45.5 cm); the server rejects more.
+const dimension = (label: string) =>
+    z
+        .number({ invalid_type_error: `${label} is required.` })
+        .min(0.01, { message: `${label} must be greater than 0.` })
+        .max(100000, { message: `${label} looks too large (max 100,000).` })
+        .refine((v) => Math.abs(v * 100 - Math.round(v * 100)) < 1e-6, {
+            message: `${label} can have at most 2 decimals.`,
+        })
+
+// The artwork is always created in the signed-in user's own portfolio; the
+// server derives the profile, so the form no longer sends artist_profile_id.
 const artworkFormSchema = z.object({
-    name: z.string().min(1, { message: "Artwork name is required." }),
-    description: z.string().min(1, { message: "Description is required." }),
+    name: z.string().trim().min(1, { message: "Artwork name is required." }),
+    description: z.string().trim().min(1, { message: "Description is required." }),
     media: z.array(mediaItemSchema).min(1, { message: "At least one photo is required." }),
-    materials_used: z.string().min(1, { message: "Materials used is required." }),
-    height: z.number().min(0.1, { message: "Height must be greater than 0." }),
-    length: z.number().min(0.1, { message: "Length must be greater than 0." }),
-    breadth: z.number().min(0.1, { message: "Breadth must be greater than 0." }),
+    materials_used: z.string().trim().min(1, { message: "Materials used is required." }),
+    height: dimension("Height"),
+    length: dimension("Length"),
+    breadth: dimension("Breadth"),
     dimensions_unit: z.enum(["cm", "inches", "m", "ft"], {
         required_error: "Please select a unit.",
     }),
-    artist_profile_id: z
+    number_of_shares: z
         .number()
         .int()
-        .positive({ message: "Artist profile is missing. Open your artist dashboard or sign in again." }),
-    number_of_shares: z.number().int().min(1, { message: "Number of parts must be at least 1." }),
+        .min(1, { message: "Number of parts must be at least 1." })
+        .max(10000, { message: "An artwork can have at most 10,000 parts." }),
     starting_price: z.number().min(0.01, { message: "Starting price must be greater than 0." }),
 })
 
@@ -72,6 +83,7 @@ interface ArtworkFormProps {
 export default function ArtworkForm({ onSubmit }: ArtworkFormProps) {
     const [isUploading, setIsUploading] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement>(null)
 
     const router = useRouter()
 
@@ -86,21 +98,10 @@ export default function ArtworkForm({ onSubmit }: ArtworkFormProps) {
             length: 0,
             breadth: 0,
             dimensions_unit: "cm",
-            artist_profile_id: 0,
             number_of_shares: 100,
             starting_price: 0,
         },
     })
-
-    useEffect(() => {
-        const raw = localStorage.getItem(ARTIST_PROFILE_ID_KEY)
-        if (!raw) return
-        console.log("raw: ", raw)
-        const id = parseInt(raw, 10)
-        if (!Number.isNaN(id) && id > 0) {
-            form.setValue("artist_profile_id", id)
-        }
-    }, [form.setValue])
 
     const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, index?: number) => {
         const files = e.target.files
@@ -121,9 +122,11 @@ export default function ArtworkForm({ onSubmit }: ArtworkFormProps) {
             if (index !== undefined) {
                 const updated = [...currentMedia]
                 updated[index] = newItems[0]
-                form.setValue("media", updated)
+                form.setValue("media", updated, { shouldValidate: true })
             } else {
-                form.setValue("media", [...currentMedia, ...newItems])
+                // Validating here clears "At least one photo is required." as
+                // soon as a photo is added, not only on the next submit.
+                form.setValue("media", [...currentMedia, ...newItems], { shouldValidate: true })
             }
         } catch (err: any) {
             const errorMessage = err?.response?.data?.message || "Failed to upload images. Please try again."
@@ -190,15 +193,6 @@ export default function ArtworkForm({ onSubmit }: ArtworkFormProps) {
             <CardContent>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
-                        <FormField
-                            control={form.control}
-                            name="artist_profile_id"
-                            render={() => (
-                                <FormItem>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
                         {/* Artwork Name */}
                         <FormField
                             control={form.control}
@@ -301,18 +295,20 @@ export default function ArtworkForm({ onSubmit }: ArtworkFormProps) {
                                     type="button"
                                     className="gap-2 font-sans"
                                     disabled={isUploading}
-                                    onClick={() => {
-                                        const input = document.createElement("input")
-                                        input.type = "file"
-                                        input.accept = "image/*"
-                                        input.multiple = true
-                                        input.onchange = (e) => handlePhotoUpload(e as any)
-                                        input.click()
-                                    }}
+                                    onClick={() => fileInputRef.current?.click()}
                                 >
                                     <PlusCircle className="w-4 h-4" />
                                     {isUploading ? "Uploading..." : "Add Photo"}
                                 </Button>
+                                {/* Kept in the DOM: some browsers ignore clicks on detached file inputs. */}
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    className="hidden"
+                                    onChange={(e) => handlePhotoUpload(e)}
+                                />
                             </div>
                         </div>
 
@@ -343,7 +339,7 @@ export default function ArtworkForm({ onSubmit }: ArtworkFormProps) {
                                         <FormControl>
                                             <Input
                                                 type="number"
-                                                step="0.1"
+                                                step="0.01"
                                                 placeholder="100"
                                                 {...field}
                                                 onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
@@ -362,7 +358,7 @@ export default function ArtworkForm({ onSubmit }: ArtworkFormProps) {
                                         <FormControl>
                                             <Input
                                                 type="number"
-                                                step="0.1"
+                                                step="0.01"
                                                 placeholder="80"
                                                 {...field}
                                                 onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
@@ -381,7 +377,7 @@ export default function ArtworkForm({ onSubmit }: ArtworkFormProps) {
                                         <FormControl>
                                             <Input
                                                 type="number"
-                                                step="0.1"
+                                                step="0.01"
                                                 placeholder="5"
                                                 {...field}
                                                 onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}

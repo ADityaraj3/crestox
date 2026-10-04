@@ -1,7 +1,9 @@
 "use client"
 
 import { useEffect, useState, useCallback, Suspense } from "react"
-import { useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
+import { getCookie } from "@/utils/cookieUtils"
+import { setReturnTo } from "@/utils/returnTo"
 import {
     Card,
     CardContent,
@@ -54,6 +56,14 @@ function PriceApprovalContent() {
     const [result, setResult] = useState<{ status: "APPROVED" | "REJECTED"; message: string } | null>(null)
     const [submitError, setSubmitError] = useState<string | null>(null)
 
+    const router = useRouter()
+    const [needsLogin, setNeedsLogin] = useState(false)
+
+    const goToLogin = useCallback(() => {
+        setReturnTo(`${window.location.pathname}${window.location.search}`)
+        router.push("/login")
+    }, [router])
+
     useEffect(() => {
         let cancelled = false
         const load = async () => {
@@ -61,11 +71,19 @@ function PriceApprovalContent() {
                 setLoading(false)
                 return
             }
+            // Only the artwork's owner may answer (QA finding M9): sign in first.
+            if (!getCookie("token")?.trim()) {
+                setNeedsLogin(true)
+                setLoading(false)
+                return
+            }
             try {
                 const data = await getPriceApproval(token)()
                 if (!cancelled) setDetails(data)
             } catch (err: any) {
-                if (!cancelled) {
+                if (!cancelled && err?.response?.status === 401) {
+                    setNeedsLogin(true)
+                } else if (!cancelled) {
                     setLoadError(
                         err?.response?.data?.message ??
                             "We couldn't find this price approval request. The link may be invalid."
@@ -102,6 +120,17 @@ function PriceApprovalContent() {
     )
 
     const renderBody = () => {
+        if (needsLogin) {
+            return (
+                <div className="flex flex-col items-center space-y-4 text-center">
+                    <AlertTriangle className="h-12 w-12 text-amber-500" />
+                    <p className="text-muted-foreground">
+                        Sign in with the account that owns this artwork to review the price change.
+                    </p>
+                    <Button onClick={goToLogin}>Sign in to continue</Button>
+                </div>
+            )
+        }
         if (loading) {
             return (
                 <div className="flex flex-col items-center space-y-4">
