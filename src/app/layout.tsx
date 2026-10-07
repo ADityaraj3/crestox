@@ -2,6 +2,7 @@ import "./globals.css";
 import Providers from "@/components/Providers";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 import NexttopLoader from "nextjs-toploader";
 
 export const metadata = {
@@ -21,6 +22,7 @@ export default function RootLayout({
     return (
         <html lang="en" suppressHydrationWarning>
             <body>
+                <GoogleAnalytics />
                 <NexttopLoader />
                 <Providers>
                     <Header />

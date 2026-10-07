@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getBufferPriceOfArtwork } from '@/apis/artists/artistActions';
 import Link from 'next/link';
 
 export interface Artwork {
@@ -16,10 +15,16 @@ export interface Artwork {
 
 interface ArtworksGridProps {
   artworks: Artwork[];
-  /** Live prices applied immediately after purchase (skips refetch skeleton). */
+  /** Live prices applied immediately after purchase. */
   priceOverrides?: Record<string, number>;
-  /** Increment after purchase to refetch live buffer prices from the API. */
-  priceRefreshKey?: number;
+  /**
+   * The artist's current fractal price (portfolio.fractal_price, e.g. from
+   * GET /artists/:id/basic). Every artwork of an artist trades at this price, so
+   * it is passed in once instead of each card requesting a price quote.
+   */
+  fractalPrice?: number | null;
+  /** Show a skeleton for the value while the page is (re)loading the price. */
+  priceLoading?: boolean;
 }
 
 export function ArtworksGridSkeleton() {
@@ -41,7 +46,8 @@ export function ArtworksGridSkeleton() {
 const ArtworksGrid: React.FC<ArtworksGridProps> = ({
   artworks,
   priceOverrides = {},
-  priceRefreshKey = 0,
+  fractalPrice = null,
+  priceLoading = false,
 }) => {
   return (
     <div className="columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6">
@@ -61,7 +67,8 @@ const ArtworksGrid: React.FC<ArtworksGridProps> = ({
             <ArtworkCard
               artwork={artwork}
               priceOverride={priceOverrides[artwork.id]}
-              priceRefreshKey={priceRefreshKey}
+              fractalPrice={fractalPrice}
+              priceLoading={priceLoading}
             />
           </motion.div>
         ))}
@@ -80,56 +87,23 @@ const ArtworksGrid: React.FC<ArtworksGridProps> = ({
 interface ArtworkCardProps {
   artwork: Artwork;
   priceOverride?: number;
-  priceRefreshKey?: number;
+  fractalPrice?: number | null;
+  priceLoading?: boolean;
 }
 
 const ArtworkCard: React.FC<ArtworkCardProps> = ({
   artwork,
   priceOverride,
-  priceRefreshKey = 0,
+  fractalPrice,
+  priceLoading = false,
 }) => {
-  const artworkId = Number(artwork.id);
-  const [bufferPrice, setBufferPrice] = useState<number | null>(null);
-  const [priceLoading, setPriceLoading] = useState(true);
-
-  useEffect(() => {
-    if (priceOverride != null && Number.isFinite(priceOverride)) {
-      setBufferPrice(priceOverride);
-      setPriceLoading(false);
-    }
-  }, [priceOverride]);
-
-  useEffect(() => {
-    if (!artworkId || isNaN(artworkId)) {
-      setPriceLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    const hasOptimisticPrice = priceOverride != null && Number.isFinite(priceOverride);
-    if (!hasOptimisticPrice) {
-      setPriceLoading(true);
-      setBufferPrice(null);
-    }
-
-    getBufferPriceOfArtwork(artworkId)()
-      .then((price) => {
-        if (!cancelled) {
-          setBufferPrice(typeof price === 'number' ? price : Number(price) || 0);
-        }
-      })
-      .catch(() => {
-        if (!cancelled && !hasOptimisticPrice) setBufferPrice(null);
-      })
-      .finally(() => {
-        if (!cancelled) setPriceLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [artworkId, priceRefreshKey, priceOverride]);
-
-  const displayValue = priceOverride ?? bufferPrice ?? artwork.valuation;
+  const livePrice =
+    priceOverride != null && Number.isFinite(priceOverride)
+      ? priceOverride
+      : fractalPrice != null && Number.isFinite(fractalPrice)
+        ? fractalPrice
+        : null;
+  const displayValue = livePrice ?? artwork.valuation;
 
   return (
     <Link href={`/art/${artwork.id}`} prefetch className="group relative overflow-hidden rounded-sm cursor-pointer block">

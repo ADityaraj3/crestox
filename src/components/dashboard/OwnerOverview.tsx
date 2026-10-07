@@ -25,7 +25,6 @@ export const OwnerOverview = () => {
     queryFn: getOwnerOnboardingState(),
     staleTime: 30_000,
     enabled: Boolean(user),
-    refetchOnMount: "always",
   });
 
   const isApproved =

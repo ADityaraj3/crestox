@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { cancelListing, getMyListings } from "@/apis/my-collection/myCollectionActions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
@@ -23,34 +24,33 @@ export interface MyListing {
 
 interface ListedGridProps {}
 
+export const MY_LISTINGS_QUERY_KEY = ["my-listings"] as const;
+
 const ListedGrid: React.FC<ListedGridProps> = () => {
-  const [myListings, setMyListings] = useState<MyListing[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [cancellingId, setCancellingId] = useState<number | null>(null);
 
-  useEffect(() => {
-    const fetchListings = async () => {
-      setLoading(true);
+  // Cached so switching collection tabs does not refetch; creating a listing
+  // invalidates this key.
+  const { data: myListings = [], isLoading: loading } = useQuery({
+    queryKey: MY_LISTINGS_QUERY_KEY,
+    queryFn: async (): Promise<MyListing[]> => {
       try {
         const response = await getMyListings();
         const data = response?.data?.data;
-        const list = Array.isArray(data) ? data : [];
-        setMyListings(list);
+        return Array.isArray(data) ? data : [];
       } catch {
-        setMyListings([]);
-      } finally {
-        setLoading(false);
+        return [];
       }
-    };
-    fetchListings();
-  }, []);
+    },
+  });
 
   const handleCancel = async (listingId: number) => {
     if (cancellingId != null) return;
     setCancellingId(listingId);
     try {
       await cancelListing(listingId);
-      setMyListings((items) =>
+      queryClient.setQueryData<MyListing[]>(MY_LISTINGS_QUERY_KEY, (items = []) =>
         items.map((item) =>
           item.listing_id === listingId ? { ...item, status: "CANCELLED" } : item,
         ),

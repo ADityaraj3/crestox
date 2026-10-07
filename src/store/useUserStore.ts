@@ -50,6 +50,11 @@ interface UserState {
 // components) all await the single in-flight promise instead of firing again.
 let inFlightProfile: Promise<User | null> | null = null;
 let inFlightInit: Promise<void> | null = null;
+// Token the loaded profile belongs to. initialize() runs on mount and on every
+// window focus / tab return; when the token is unchanged and the profile is
+// already loaded there is nothing new to fetch, so GET /profile is skipped.
+// Explicit fetchProfile() calls (after onboarding steps, billing edits) still refetch.
+let profileToken: string | null = null;
 
 export const useUserStore = create<UserState>((set, get) => ({
     user: null,
@@ -63,6 +68,7 @@ export const useUserStore = create<UserState>((set, get) => ({
         if (inFlightProfile) return inFlightProfile;
 
         set({ isLoading: true, error: null });
+        const requestToken = getCookie('token') || null;
         inFlightProfile = (async () => {
             try {
                 const getProfileAction = getProfile();
@@ -71,6 +77,7 @@ export const useUserStore = create<UserState>((set, get) => ({
                 // Assuming response.data.data or similar contains the structured user. Adjust based on your backend response structure.
                 const userData = response?.data?.data || response?.data;
                 syncArtistProfileIdFromProfile(userData?.artist_profile_id);
+                profileToken = userData ? requestToken : null;
                 set({ user: userData, isLoading: false, isLoggedIn: true });
                 return userData ?? null;
             } catch (err: any) {
@@ -104,7 +111,13 @@ export const useUserStore = create<UserState>((set, get) => ({
                 const token = getCookie('token');
                 if (token === undefined || token === '') {
                     // No credential: definitively logged out.
+                    profileToken = null;
                     set({ isLoggedIn: false, user: null, isLoading: false, isInitialized: true });
+                    return;
+                }
+                if (get().user && token === profileToken) {
+                    // Same session, profile already loaded: nothing to refetch.
+                    set({ isLoggedIn: true, isInitialized: true });
                     return;
                 }
                 // Credential present: mark as logged in immediately so the UI can show a skeleton
@@ -120,6 +133,7 @@ export const useUserStore = create<UserState>((set, get) => ({
     },
 
     clearUser: () => {
+        profileToken = null;
         clearArtistProfileIdStorage();
         set({ user: null, error: null, isLoggedIn: false, isInitialized: true });
     },

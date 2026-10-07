@@ -30,6 +30,8 @@ function hasAuthToken(): boolean {
 }
 
 const ENABLE_RAZORPAY = true;
+/** Wait this long after the last quantity change before requesting a new quote. */
+const QUOTE_DEBOUNCE_MS = 400;
 
 declare global {
   interface Window {
@@ -98,6 +100,7 @@ const CollectModule: React.FC<CollectModuleProps> = ({
   const prevArtworkIdRef = useRef<number | null>(null);
   const prevDialogOpenRef = useRef(false);
   const quoteRequestRef = useRef(0);
+  const prevQuoteQtyRef = useRef<number | null>(null);
   const quantityRef = useRef(quantity);
   quantityRef.current = quantity;
 
@@ -221,7 +224,21 @@ const CollectModule: React.FC<CollectModuleProps> = ({
     }
 
     const q = quantity === '' ? 1 : quantity;
+    const quantityChanged = prevQuoteQtyRef.current !== q;
+    prevQuoteQtyRef.current = q;
     const mode: QuoteFetchMode = artworkChanged ? 'initial' : dialogOpen ? 'dialog' : 'silent';
+
+    // Each quote is a ~2-3 s server call. Typing "25" or tapping +/- several
+    // times used to fire one request per change; wait until the quantity
+    // settles and request only the last one.
+    // Responses for an older quantity are discarded by the request id in fetchQuote.
+    if (!artworkChanged && quantityChanged) {
+      if (mode === 'dialog') setDialogQuoteLoading(true);
+      const timer = window.setTimeout(() => {
+        void fetchQuote(id, q, mode);
+      }, QUOTE_DEBOUNCE_MS);
+      return () => window.clearTimeout(timer);
+    }
     void fetchQuote(id, q, mode);
   }, [firstArtworkId, quantity, dialogOpen, fetchQuote]);
 

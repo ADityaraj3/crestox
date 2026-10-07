@@ -123,7 +123,6 @@ const ArtistPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [artworkPriceOverrides, setArtworkPriceOverrides] = useState<Record<string, number>>({});
-  const [artworkPriceRefreshKey, setArtworkPriceRefreshKey] = useState(0);
 
   useEffect(() => {
     if (!id || isNaN(id)) {
@@ -220,7 +219,6 @@ const ArtistPage = () => {
           setArtworkPriceOverrides((existing) => ({ ...existing, ...overrides }));
           return prev.map((artwork) => ({ ...artwork, valuation: nextPrice }));
         });
-        setArtworkPriceRefreshKey((k) => k + 1);
       }
       setBasicDetails((prev) => {
         if (!prev) return prev;
@@ -294,6 +292,10 @@ const ArtistPage = () => {
       : null;
 
   const firstArtworkId = artworks.length > 0 ? Number(artworks[0].id) : null;
+  // The backend sends 0 when the artist has no portfolio yet; cards then fall back to valuation.
+  const artistFractalPrice = Number(basicDetails?.current_share_value) > 0
+    ? Number(basicDetails?.current_share_value)
+    : null;
   const collectModuleProps = basicDetails
     ? {
         pricePerFractal: Number(basicDetails.current_share_value) || 240.5,
@@ -323,22 +325,12 @@ const ArtistPage = () => {
   // tells CollectModule to show its skeleton for the duration.
   const [returnRefreshing, setReturnRefreshing] = useState(false);
 
-  const refreshBasicDetailsSilently = useCallback(async () => {
-    if (id == null || isNaN(id)) return;
-    try {
-      const basic = await getArtistBasicDetails(id)();
-      setBasicDetails(basic ?? null);
-    } catch {
-      // keep showing last known details if refresh fails
-    }
-  }, [id]);
-
   useEffect(() => {
     const handleReturn = () => {
       if (document.visibilityState !== 'visible') return;
       if (!isPurchasePending(firstArtworkId)) return;
-      setReturnRefreshing(true);
-      void refreshBasicDetailsSilently().finally(() => setReturnRefreshing(false));
+      // refetchAfterCollect already reloads basic details (plus collectors,
+      // artworks and analytics) and drives returnRefreshing itself.
       refetchAfterCollect();
     };
     handleReturn();
@@ -350,7 +342,7 @@ const ArtistPage = () => {
       window.removeEventListener('pageshow', handleReturn);
       window.removeEventListener('focus', handleReturn);
     };
-  }, [firstArtworkId, refreshBasicDetailsSilently, refetchAfterCollect]);
+  }, [firstArtworkId, refetchAfterCollect]);
 
   const achievementsForTab = Array.isArray(achievements)
     ? achievements.map((a) => ({
@@ -391,7 +383,8 @@ const ArtistPage = () => {
           <ArtworksGrid
             artworks={artworks}
             priceOverrides={artworkPriceOverrides}
-            priceRefreshKey={artworkPriceRefreshKey}
+            fractalPrice={artistFractalPrice}
+            priceLoading={returnRefreshing}
           />
         );
       case 'analytics':
@@ -413,7 +406,8 @@ const ArtistPage = () => {
           <ArtworksGrid
             artworks={artworks}
             priceOverrides={artworkPriceOverrides}
-            priceRefreshKey={artworkPriceRefreshKey}
+            fractalPrice={artistFractalPrice}
+            priceLoading={returnRefreshing}
           />
         );
     }

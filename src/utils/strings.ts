@@ -10,5 +10,9 @@ export const strings = {
     // Apple Sign In
     apple_client_id: process.env.NEXT_PUBLIC_APPLE_CLIENT_ID || "your.apple.service.id",
     apple_redirect_uri: process.env.NEXT_PUBLIC_APPLE_REDIRECT_URI || "https://your-domain.com/auth/apple/callback",
+
+    // Google Analytics (gtag.js) - set NEXT_PUBLIC_GA_MEASUREMENT_ID to enable.
+    // Leave empty to disable analytics entirely (e.g. in local/dev).
+    ga_measurement_id: process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "",
 };
  

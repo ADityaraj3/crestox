@@ -28,7 +28,6 @@ import {
 } from "@/components/ui/card";
 import GradientButton from "@/components/ui/gradiant-button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getProfile } from "@/apis/user/userActions";
 import {
   getCuratorOnboardingState,
   submitCuratorOnboardingStep1,
@@ -164,7 +163,6 @@ export default function CuratorOnboardingWizard({ variant = "portfolio", classNa
   const user = useUserStore((st) => st.user);
   const [activeStep, setActiveStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
-  const [profileError, setProfileError] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -183,7 +181,6 @@ export default function CuratorOnboardingWizard({ variant = "portfolio", classNa
     queryFn: getCuratorOnboardingState(),
     staleTime: 30_000,
     enabled: !!user,
-    refetchOnMount: "always",
   });
 
   useEffect(() => {
@@ -221,26 +218,17 @@ export default function CuratorOnboardingWizard({ variant = "portfolio", classNa
     name: "publications",
   });
 
+  // Prefill from the profile already in the user store (the query above only
+  // runs once it is loaded) instead of requesting GET /profile a second time.
   useEffect(() => {
-    if (!onboarding) return;
+    if (!onboarding || !user) return;
     if (onboarding.curator_profile_id) return;
     if (namePrefilledFromAccount.current) return;
-    const run = async () => {
-      try {
-        const fetchProfileAction = getProfile();
-        const profileRes = await fetchProfileAction();
-        const userData = profileRes.data?.data ?? profileRes.data;
-        if (userData?.name && !form.getValues("curatorName")?.trim()) {
-          form.setValue("curatorName", userData.name);
-        }
-        namePrefilledFromAccount.current = true;
-      } catch (err) {
-        console.error(err);
-        setProfileError("Could not verify your profile details. Please try refreshing.");
-      }
-    };
-    void run();
-  }, [form, onboarding]);
+    if (user.name && !form.getValues("curatorName")?.trim()) {
+      form.setValue("curatorName", user.name);
+    }
+    namePrefilledFromAccount.current = true;
+  }, [form, onboarding, user]);
 
   useEffect(() => {
     if (!onboarding) return;
@@ -607,11 +595,6 @@ export default function CuratorOnboardingWizard({ variant = "portfolio", classNa
 
   const inner = (
     <>
-      {profileError && (
-        <div className="mb-6 p-4 bg-destructive/10 text-destructive rounded-md text-sm border border-destructive/20">
-          {profileError}
-        </div>
-      )}
       {stepStrip}
       <Form {...form}>
         <form

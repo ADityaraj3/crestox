@@ -25,7 +25,6 @@ export const CuratorOverview = () => {
     queryFn: getCuratorOnboardingState(),
     staleTime: 30_000,
     enabled: Boolean(user),
-    refetchOnMount: "always",
   });
 
   const isApproved =

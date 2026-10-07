@@ -46,7 +46,6 @@ export const ArtistOverview = () => {
     queryFn: getArtistOnboardingState(),
     staleTime: 30_000,
     enabled: Boolean(user),
-    refetchOnMount: "always",
   });
 
   /** Prefer API; while onboarding is still loading, fall back to profile so approved artists are not blocked. */

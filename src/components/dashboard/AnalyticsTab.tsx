@@ -69,7 +69,6 @@ export const AnalyticsTab = () => {
     queryFn: getArtistOnboardingState(),
     staleTime: 30_000,
     enabled: Boolean(user),
-    refetchOnMount: "always",
   });
 
   const isApprovedArtist =

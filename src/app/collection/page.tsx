@@ -521,7 +521,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import PortfolioHUD from '@/components/PortfolioHUD';
 import DriftGrid from '@/components/DriftGrid';
-import ListedGrid from '@/components/ListedGrid';
+import ListedGrid, { MY_LISTINGS_QUERY_KEY } from '@/components/ListedGrid';
+import { useQueryClient } from '@tanstack/react-query';
 import TunnelView from '@/components/TunnelView';
 import ResaleListingModal from '@/components/ResaleListingModal';
 
@@ -624,6 +625,7 @@ function MyHoldingsSkeleton() {
 }
 
 export default function CollectionPage() {
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('My Holdings');
   const [resaleTarget, setResaleTarget] = useState<MyCollectionArtist | null>(null);
   const [certificateTarget, setCertificateTarget] = useState<MyCollectionArtist | null>(null);
@@ -690,8 +692,12 @@ export default function CollectionPage() {
     }
   }, []);
 
+  // Load the watchlist the first time its tab opens; switching tabs back and
+  // forth reuses it. It only changes on artist pages, which remount this page.
+  const watchlistLoadedRef = React.useRef(false);
   useEffect(() => {
-    if (activeTab === 'Watchlist') {
+    if (activeTab === 'Watchlist' && !watchlistLoadedRef.current) {
+      watchlistLoadedRef.current = true;
       fetchWatchlist();
     }
   }, [activeTab, fetchWatchlist]);
@@ -808,6 +814,7 @@ export default function CollectionPage() {
               });
               toast.success(`Listed ${data.quantity} fractals at ₹${data.price.toLocaleString()} each`);
               setResaleTarget(null);
+              void queryClient.invalidateQueries({ queryKey: MY_LISTINGS_QUERY_KEY });
               await fetchMyCollection();
               return true;
             } catch (err: any) {
