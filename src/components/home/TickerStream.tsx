@@ -217,6 +217,13 @@ const TickerStream = () => {
     }, HOVER_BRIDGE_MS);
   }, [clearHoverBridge]);
 
+  const dismissInteraction = useCallback(() => {
+    clearHoverBridge();
+    interactionDepthRef.current = 0;
+    setIsAnimationPaused(false);
+    setHoveredCard(null);
+  }, [clearHoverBridge]);
+
   const { data: raw = [], isLoading, isError } = useQuery({
     queryKey: ['featured-ticker-artworks'],
     queryFn: () => getFeaturedArtworksForTicker()(),
@@ -247,6 +254,24 @@ const TickerStream = () => {
   useEffect(() => {
     return () => clearHoverBridge();
   }, [clearHoverBridge]);
+
+  // The holographic popup is positioned using a viewport rect captured at
+  // hover time. If the user scrolls while hovering, that rect becomes stale and
+  // the card visually detaches ("floats up") while the carousel stays paused.
+  // Dismiss the popup on scroll so the carousel resumes and the card closes.
+  useEffect(() => {
+    if (!hoveredCard) return;
+
+    const handleScrollDismiss = () => dismissInteraction();
+
+    window.addEventListener('scroll', handleScrollDismiss, { passive: true });
+    window.addEventListener('wheel', handleScrollDismiss, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScrollDismiss);
+      window.removeEventListener('wheel', handleScrollDismiss);
+    };
+  }, [hoveredCard, dismissInteraction]);
 
   return (
     <section id="market" className="relative py-12 bg-background border-y border-border overflow-hidden">
