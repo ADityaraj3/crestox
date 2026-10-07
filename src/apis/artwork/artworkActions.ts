@@ -82,9 +82,6 @@ export const getPriceHistory = (artworkId: string, params?: any) => async () => 
 
 /** Aggregated analytics for artwork detail (valuation series, grades, collectors, portfolio, fractal price, hold time). */
 export interface ArtworkAnalyticsPayload {
-    artwork_id: number;
-    artist_profile_id: number;
-    currency: "INR";
     valuation_history: { label: string; price: number }[];
     grade_distribution: { grade: string; count: number }[];
     unique_collectors: number;
@@ -119,7 +116,6 @@ export interface VerifiedArtwork {
 export interface VerifiedArtworksPage {
     list: VerifiedArtwork[];
     next_cursor: number | null;
-    sort?: VerifiedArtworkSort;
 }
 
 export const getVerifiedArtworks =
@@ -137,7 +133,6 @@ export const getVerifiedArtworks =
             return {
                 list: Array.isArray(data?.list) ? data.list : [],
                 next_cursor: data?.next_cursor ?? null,
-                sort: data?.sort,
             };
         } catch (err: any) {
             console.log({ err });
@@ -156,17 +151,13 @@ export interface PriceApprovalDetails {
     status: PriceApprovalStatus;
     artwork_id: number;
     artwork_name: string | null;
-    artist_name: string | null;
     price_before: number;
     price_after: number;
     notes: string | null;
-    expires_at: string;
-    responded_at: string | null;
 }
 
 export interface PriceApprovalResponseResult {
     status: "APPROVED" | "REJECTED";
-    artwork_id: number;
     message: string;
 }
 

@@ -24,7 +24,6 @@ export interface OwnerOnboardingState {
         }>;
         highlights: Array<{
             title: string;
-            description: string | null;
             media_id: number | null;
             media_url?: string | null;
             media_original_name?: string | null;

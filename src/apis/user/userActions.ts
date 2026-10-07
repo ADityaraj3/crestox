@@ -32,7 +32,7 @@ export const updateNotificationPreferences = async (
 export type BillingDetails = { billing_state_code: string | null; gstin: string | null };
 
 /** Billing state decides IGST (other state) vs CGST + SGST on your invoices. */
-export const updateBillingDetails = async (data: Partial<BillingDetails>): Promise<BillingDetails> => {
+export const updateBillingDetails = async (data: Partial<BillingDetails>): Promise<{ updated: boolean }> => {
     const response = await instance.patch(USER_URLS.UPDATE_BILLING, data);
     return response.data?.data ?? response.data;
 };

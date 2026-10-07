@@ -21,12 +21,7 @@ export interface ArtistAchievement {
     id: number;
     title: string;
     description: string | null;
-    media: {
-        media_id: number;
-        file_path: string;
-        original_file_name: string;
-    } | null;
-    display_order: number;
+    media: { file_path: string } | null;
     created_at: string;
 }
 
@@ -35,12 +30,7 @@ export interface ArtistHistory {
     id: number;
     title: string;
     description: string | null;
-    media: {
-        media_id: number;
-        file_path: string;
-        original_file_name: string;
-    } | null;
-    display_order: number;
+    media: { file_path: string } | null;
     created_at: string;
 }
 
@@ -59,8 +49,6 @@ export interface ArtistPriceHistory {
 
 /** GET /artists/:id/analytics — same metrics as artwork analytics; chart is fractal price over time */
 export interface ArtistAnalyticsPayload {
-    artist_profile_id: number;
-    currency: 'INR';
     fractal_price_history: { label: string; price: number }[];
     grade_distribution: { grade: string; count: number }[];
     unique_collectors: number;
@@ -75,7 +63,6 @@ export interface ArtistArtwork {
 
 export interface FeaturedArtist {
     artist_profile_id: number | null;
-    artist_id: number;
     artist_name: string;
     artist_bio: string | null;
     avatar_url: string | null;
@@ -92,7 +79,6 @@ export interface HomepageArtwork {
 
 /** GET /artists/homepage — spotlight section */
 export interface HomepageArtist {
-    artist_id: number;
     artist_profile_id: number;
     artist_name: string;
     description: string | null;
@@ -142,8 +128,12 @@ export const getAllArtists =
     (params: { page?: number; limit?: number; isApproved?: boolean } = {}) =>
     async (): Promise<any> => {
         try {
+            // The API pages with `take` (max 100) and always lists approved artists only.
             const response = await instance.get(ARTIST_URLS.GET_ALL_ARTISTS, {
-                params,
+                params: {
+                    page: params.page ?? 1,
+                    take: Math.min(Math.max(params.limit ?? 100, 1), 100),
+                },
             });
             return response.data?.data ?? [];
         } catch (err: any) {
@@ -177,14 +167,12 @@ export interface ArtistOnboardingState {
     step2: {
         achievements: Array<{
             title: string;
-            description: string | null;
             media_id: number | null;
             media_url?: string | null;
             media_original_name?: string | null;
         }>;
         history: Array<{
             title: string;
-            description: string | null;
             media_id: number | null;
             media_url?: string | null;
             media_original_name?: string | null;
@@ -372,24 +360,10 @@ export interface InitiateBuyResponse {
     razorpay_key_id: string;
     amount: string;
     estimated_cost: string;
-    buffer_pct: string;
-    raw_buffer_pct?: string;
-    high_volatility?: boolean;
     max_charge: string;
     expires_at: string;
     price_disclaimer: string;
     currency: string;
-    receipt: string;
-    artwork_id: number;
-    quantity: number;
-    current_fractal_price: string;
-    cost_breakdown: Array<{
-        source: 'SECONDARY_SALE' | 'PRIMARY_SALE';
-        quantity: number;
-        price_per_share: string;
-        subtotal: string;
-        buyer_pays: string;
-    }>;
 }
 
 export const initiateBuyOrder =
@@ -412,17 +386,12 @@ export interface CompleteBuyOrderResponse {
     status?: 'COMPLETED' | 'ALREADY_COMPLETED' | 'PROCESSING';
     message?: string;
     total_shares_purchased?: number;
-    total_amount?: string;
-    fractal_price_before?: string;
     fractal_price_after?: string;
     /** Portfolio-level count of fractals still available (primary + listed secondary). */
     available_shares_after?: number;
     /** Per-artwork available fractals (use on art detail page). */
     artwork_available_shares_after?: number;
-    amount_captured?: string;
     refund_amount?: string;
-    razorpay_payment_id?: string;
-    fills?: unknown[];
 }
 
 export const completeBuyOrder =
@@ -442,19 +411,10 @@ export const completeBuyOrder =
     };
 
 export interface BuyOrderStatusResponse {
-    razorpay_order_id: string;
-    artwork_id: number;
-    quantity: number;
     status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'FAILED_PRICE_MOVED' | 'EXPIRED' | 'CANCELLED';
     terminal: boolean;
     message: string;
-    amount: string;
-    amount_captured: string | null;
-    executed_cost: string | null;
-    refund_status: 'NONE' | 'PENDING' | 'COMPLETED' | 'FAILED';
     refund_amount: string | null;
-    expires_at: string | null;
-    updated_at: string | null;
 }
 
 export const getBuyOrderStatus = (razorpayOrderId: string) => async (): Promise<BuyOrderStatusResponse> => {

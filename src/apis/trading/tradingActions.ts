@@ -1,11 +1,9 @@
 import instance from '@/utils/apiCalls';
 
 export interface ResaleFeePreview {
-  artist_profile_id: number;
   crestox_fee_percentage: number;
   royalty_enabled: boolean;
   royalty_percentage: number;
-  total_platform_fee_percentage: number;
   /** Fixed fee (₹) charged instead of the % fee when the sale is below cost. */
   loss_making_fee?: number;
   tds_percentage?: number;

@@ -14,6 +14,7 @@ import {
 import { toast } from 'sonner';
 import {
   getBankDetailsStatus,
+  sendBankDetailsLink,
   submitBankDetails,
   type BankDetailsStatus,
 } from '@/apis/withdrawal/withdrawalActions';
@@ -23,6 +24,10 @@ type PaymentMethod = 'bank' | 'upi';
 function BankDetailsContent() {
   const searchParams = useSearchParams();
   const isAddMode = searchParams.get('add') === '1';
+  // Proof that the owner opened the emailed link; the API refuses changes without it.
+  const verificationToken = searchParams.get('token') ?? '';
+  const [sendingLink, setSendingLink] = useState(false);
+  const [linkSent, setLinkSent] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -67,18 +72,33 @@ function BankDetailsContent() {
 
   const isValid = method === 'bank' ? bankValid : upiValid;
 
+  const handleSendLink = async () => {
+    setSendingLink(true);
+    try {
+      await sendBankDetailsLink({ add_method: isAddMode });
+      setLinkSent(true);
+      toast.success('We emailed you a secure link. Open it to continue.');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'Could not send the link. Please sign in and try again.');
+    } finally {
+      setSendingLink(false);
+    }
+  };
+
   const handleSubmit = async () => {
-    if (!isValid) return;
+    if (!isValid || !verificationToken) return;
     setSubmitting(true);
     try {
       const data =
         method === 'bank'
           ? {
+              verification_token: verificationToken,
               account_holder_name: accountName,
               account_number: accountNumber,
               ifsc: ifsc.toUpperCase(),
             }
           : {
+              verification_token: verificationToken,
               account_holder_name: accountName,
               upi_id: upiId,
               upi_phone_number: upiPhone || undefined,
@@ -167,6 +187,35 @@ function BankDetailsContent() {
                       <p className="font-mono text-sm text-foreground">{existingDetails.upi_id}</p>
                     </div>
                   )}
+                </div>
+              ) : !verificationToken ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-4 text-center">
+                  <div className="w-16 h-16 rounded-full bg-blue-500/10 flex items-center justify-center">
+                    <AlertCircle size={32} className="text-blue-500" />
+                  </div>
+                  <h3 className="text-lg font-serif font-medium text-foreground">
+                    Open the secure link from your email
+                  </h3>
+                  <p className="text-sm text-muted-foreground max-w-xs">
+                    For your security, payout details can only be changed from the link we email to
+                    you. Links expire after 30 minutes.
+                  </p>
+                  <button
+                    onClick={handleSendLink}
+                    disabled={sendingLink || linkSent}
+                    className="mt-2 px-6 py-3 rounded-xl font-medium text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center gap-2"
+                  >
+                    {sendingLink ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        Sending...
+                      </>
+                    ) : linkSent ? (
+                      'Link sent — check your inbox'
+                    ) : (
+                      'Email me a secure link'
+                    )}
+                  </button>
                 </div>
               ) : (
                 <>

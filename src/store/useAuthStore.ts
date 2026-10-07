@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { getMagicLink, verifyMagicLink, googleAuth, googleAuthCode, appleAuth } from '@/apis/auth/authActions';
-import { setCookie } from '@/utils/cookieUtils';
+import { AUTH_TOKEN_COOKIE_DAYS, setCookie } from '@/utils/cookieUtils';
 import { UserType } from '@/enums/userType';
 
 export interface VerifyResponseData {
@@ -136,7 +136,7 @@ export const useAuthStore = create<AuthState>((set) => ({
                 isNewCurator: payload?.isNewCurator === true,
                 isNewOwner: payload?.isNewOwner === true,
             };
-            setCookie('token', accessToken, 30);
+            setCookie('token', accessToken, AUTH_TOKEN_COOKIE_DAYS);
             set({ isSuccess: true });
             return result;
         } catch (err: any) {
@@ -171,7 +171,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             const isNewOwner = response.data?.isNewOwner || response.data?.data?.isNewOwner;
 
             if (accessToken) {
-                setCookie("token", accessToken, 30);
+                setCookie("token", accessToken, AUTH_TOKEN_COOKIE_DAYS);
             }
 
             set({ isSuccess: true });
@@ -220,7 +220,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             const isNewOwner = response.data?.isNewOwner || response.data?.data?.isNewOwner;
 
             if (accessToken) {
-                setCookie("token", accessToken, 30);
+                setCookie("token", accessToken, AUTH_TOKEN_COOKIE_DAYS);
             }
 
             set({ isSuccess: true });
@@ -269,7 +269,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             const isNewOwner = response.data?.isNewOwner || response.data?.data?.isNewOwner;
 
             if (accessToken) {
-                setCookie("token", accessToken, 30);
+                setCookie("token", accessToken, AUTH_TOKEN_COOKIE_DAYS);
             }
 
             set({ isSuccess: true });

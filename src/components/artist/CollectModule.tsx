@@ -478,9 +478,8 @@ const CollectModule: React.FC<CollectModuleProps> = ({
         setInitiatedOrder(orderData);
         markPurchasePending({
           artworkId,
-          quantity: orderData.quantity,
+          quantity: effectiveQty,
           razorpayOrderId: orderData.razorpay_order_id,
-          receipt: orderData.receipt,
           amount: orderData.amount,
           estimatedCost: orderData.estimated_cost,
           maxCharge: orderData.max_charge,

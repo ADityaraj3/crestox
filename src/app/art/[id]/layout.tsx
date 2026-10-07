@@ -35,9 +35,14 @@ export async function generateMetadata({
             ? artistProfile.artist_name
             : null;
 
-    const artworkName = String(artwork?.artwork_name ?? "Artwork");
+    // GET /artwork/:id returns `name`, `artwork_media` and `current_fractal_price`.
+    const artworkMedia = Array.isArray(artwork?.artwork_media)
+        ? (artwork.artwork_media as Array<{ media?: { file_path?: string } }>)
+        : [];
+    const artworkName = String(artwork?.name ?? artwork?.artwork_name ?? "Artwork");
     const description = artwork?.description ? String(artwork.description) : null;
-    const image = artwork?.primary_image_url ? String(artwork.primary_image_url) : null;
+    const primaryImage = artworkMedia[0]?.media?.file_path ?? artwork?.primary_image_url;
+    const image = primaryImage ? String(primaryImage) : null;
     const artistName = String(artistNameFromProfile ?? artwork?.artist_name ?? "Crestox");
 
     // Build variable map for template interpolation
@@ -47,7 +52,7 @@ export async function generateMetadata({
         artist_name: artistName,
         valuation: String(artwork?.value ?? artwork?.valuation ?? ""),
         available_shares: String(artwork?.available_shares ?? ""),
-        fractal_price: String(artwork?.fractal_price ?? ""),
+        fractal_price: String(artwork?.current_fractal_price ?? artwork?.fractal_price ?? ""),
     };
 
     // Derive title and description: use DB template if available, else fall back

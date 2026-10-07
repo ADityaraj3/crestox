@@ -3,9 +3,6 @@ import { MEDIA_URLS } from "./mediaUrls";
 
 export interface MediaUploadResponseItem {
     media_id: number;
-    original_file_name: string;
-    mimetype: string;
-    size: number;
     file_path: string;
 }
 

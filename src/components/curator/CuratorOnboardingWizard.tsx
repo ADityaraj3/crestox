@@ -318,9 +318,9 @@ export default function CuratorOnboardingWizard({ variant = "portfolio", classNa
   };
 
   const handleAvatarUpload = async (file: File) => {
-    const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp", "image/bmp", "image/svg+xml"];
+    const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp", "image/bmp"];
     if (!validTypes.includes(file.type)) {
-      toast.error("Invalid file type", { description: "Please upload a JPEG, PNG, JPG, GIF, WEBP, BMP, or SVG file." });
+      toast.error("Invalid file type", { description: "Please upload a JPEG, PNG, JPG, GIF, WEBP or BMP file." });
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
@@ -582,7 +582,7 @@ export default function CuratorOnboardingWizard({ variant = "portfolio", classNa
               <input
                 id={inputId}
                 type="file"
-                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp,image/svg+xml"
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp"
                 className="hidden"
                 onChange={(e) => handleFileSelect(e, fieldId, (f) => field.onChange(f))}
               />
@@ -668,7 +668,7 @@ export default function CuratorOnboardingWizard({ variant = "portfolio", classNa
                     <input
                       id="onb-curator-avatar"
                       type="file"
-                      accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp,image/svg+xml"
+                      accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp"
                       className="hidden"
                       onChange={handleAvatarFileChange}
                     />

@@ -382,11 +382,10 @@ export default function ArtistOnboardingWizard({ variant = "portfolio", classNam
       "image/gif",
       "image/webp",
       "image/bmp",
-      "image/svg+xml",
     ];
     if (!validTypes.includes(file.type)) {
       toast.error("Invalid file type", {
-        description: "Please upload a JPEG, PNG, JPG, GIF, WEBP, BMP, or SVG file.",
+        description: "Please upload a JPEG, PNG, JPG, GIF, WEBP or BMP file.",
       });
       return;
     }
@@ -749,7 +748,7 @@ export default function ArtistOnboardingWizard({ variant = "portfolio", classNam
                     <input
                       id="onb-avatar-input"
                       type="file"
-                      accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp,image/svg+xml"
+                      accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp"
                       className="hidden"
                       onChange={handleAvatarFileChange}
                     />
@@ -870,7 +869,7 @@ export default function ArtistOnboardingWizard({ variant = "portfolio", classNam
                                       <input
                                         id={`onb-awards-${awardField.id}`}
                                         type="file"
-                                        accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp,image/svg+xml"
+                                        accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp"
                                         className="hidden"
                                         onChange={(e) => handleFileSelect(e, fieldId, (f) => field.onChange(f))}
                                       />
@@ -980,7 +979,7 @@ export default function ArtistOnboardingWizard({ variant = "portfolio", classNam
                                       <input
                                         id={`onb-ex-${exhibitionField.id}`}
                                         type="file"
-                                        accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp,image/svg+xml"
+                                        accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp"
                                         className="hidden"
                                         onChange={(e) => handleFileSelect(e, fieldId, (f) => field.onChange(f))}
                                       />
@@ -1118,7 +1117,7 @@ export default function ArtistOnboardingWizard({ variant = "portfolio", classNam
                                     <input
                                       id={`onb-sold-img-${soldField.id}`}
                                       type="file"
-                                      accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp,image/svg+xml"
+                                      accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp"
                                       className="hidden"
                                       onChange={(e) => handleFileSelect(e, fieldId, (f) => field.onChange(f))}
                                     />
@@ -1173,7 +1172,7 @@ export default function ArtistOnboardingWizard({ variant = "portfolio", classNam
                                     <input
                                       id={`onb-sold-proof-${soldField.id}`}
                                       type="file"
-                                      accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp,image/svg+xml,application/pdf"
+                                      accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp,application/pdf"
                                       className="hidden"
                                       onChange={(e) => handleFileSelect(e, fieldId, (f) => field.onChange(f))}
                                     />

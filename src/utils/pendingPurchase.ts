@@ -11,7 +11,6 @@ export interface PendingPurchase {
   artworkId: number;
   quantity: number;
   razorpayOrderId: string;
-  receipt: string;
   amount: string;
   estimatedCost: string;
   maxCharge: string;

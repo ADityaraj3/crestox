@@ -19,20 +19,14 @@ export interface PortfolioDashboardRecentTransaction {
   transaction_id: number;
   created_at: string;
   share_quantity: number;
-  trade_value: number;
   artist_net_after_platform_fee: number;
-  artwork: { artwork_id: number; name: string } | null;
+  artwork: { name: string } | null;
 }
 
 export interface PortfolioDashboard {
-  artist_profile_id: number;
   portfolio_valuation: number;
   fractal_price: number;
   fractals_sold: number;
-  total_fractals: number;
-  available_fractals: number;
-  earnings_from_trades: number;
-  earnings_from_royalties: number;
   total_earnings: number;
   recent_transactions: PortfolioDashboardRecentTransaction[];
   live_artwork_count: number;
@@ -53,13 +47,10 @@ export interface PortfolioAnalyticsMetric {
 }
 
 export interface PortfolioAnalytics {
-  artist_profile_id: number;
-  currency: "INR";
-  period: PortfolioAnalyticsPeriod;
   portfolio: {
     current_value: number;
     change_percent: number | null;
-    series: { label: string; value: number }[];
+    series: { value: number }[];
   };
   metrics: {
     avg_daily_views: PortfolioAnalyticsMetric;
@@ -91,22 +82,13 @@ export interface MyArtistProfileAchievement {
   id: number;
   title: string;
   description: string | null;
-  media: {
-    media_id: number;
-    file_path: string;
-    original_file_name: string;
-  } | null;
-  display_order: number;
   created_at: string;
 }
 
 export interface MyArtistProfile {
-  artist_profile_id: number;
   artist_name: string;
   artist_bio: string | null;
-  collector_message: string | null;
   avatar_url: string | null;
-  avatar_media_id: number | null;
   email: string;
   phone_number: string | null;
   location: string | null;

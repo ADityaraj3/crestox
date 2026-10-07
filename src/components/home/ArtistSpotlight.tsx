@@ -314,7 +314,7 @@ const ArtistSpotlight = () => {
         {!isLoading && !isError && cards.length > 0 && (
           <div className="space-y-32">
             {cards.map((artist, index) => (
-              <ArtistCard key={`${artist.artist_profile_id}-${artist.artist_id}`} artist={artist} index={index} />
+              <ArtistCard key={artist.artist_profile_id} artist={artist} index={index} />
             ))}
           </div>
         )}

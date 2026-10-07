@@ -7,7 +7,7 @@ import {
     passkeyAuthenticateOptions,
     passkeyAuthenticate,
 } from '@/apis/auth/authActions';
-import { setCookie } from '@/utils/cookieUtils';
+import { AUTH_TOKEN_COOKIE_DAYS, setCookie } from '@/utils/cookieUtils';
 
 interface PasskeyAuthResult {
     accessToken: string;
@@ -97,7 +97,7 @@ export function usePasskeyAuth() {
             const result = authRes.data?.data || authRes.data;
 
             if (result?.accessToken) {
-                setCookie('token', result.accessToken, 30);
+                setCookie('token', result.accessToken, AUTH_TOKEN_COOKIE_DAYS);
             }
 
             return result;

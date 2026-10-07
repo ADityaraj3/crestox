@@ -15,14 +15,12 @@ export interface CuratorOnboardingState {
     step2: {
         exhibitions: Array<{
             title: string;
-            description: string | null;
             media_id: number | null;
             media_url?: string | null;
             media_original_name?: string | null;
         }>;
         publications: Array<{
             title: string;
-            description: string | null;
             media_id: number | null;
             media_url?: string | null;
             media_original_name?: string | null;

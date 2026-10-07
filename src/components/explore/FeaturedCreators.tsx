@@ -69,7 +69,7 @@ function mapFeaturedArtistToCreator(artist: any): CreatorItem {
     };
 
     return {
-        id: artist.artist_profile_id ?? artist.artist_id ?? artist.id,
+        id: artist.artist_profile_id ?? artist.id,
         name: artist.artist_name || artist.user?.name || 'Unknown',
         type,
         role: roleLabels[type] ?? 'Artist',

@@ -10,20 +10,13 @@ export interface User {
     id: number;
     name: string;
     email: string;
-    phoneNumber: string | null;
-    emailVerified: boolean;
-    activeFlag: boolean;
-    createdAt: string;
-    updatedAt: string;
-    roles: string[];
-    permissions: string[];
+    /** Role objects from GET /profile; read through getRoleSlugs(). */
+    roles: Array<{ roleSlug: string }> | string[];
     isAdmin: boolean;
     artist_profile_id?: number | null;
     artist_profile_approved?: boolean;
     /** ARTIST, or CURATOR / OWNER for the selling profile those roles get once onboarded. */
     artist_creator_type?: "ARTIST" | "CURATOR" | "OWNER" | null;
-    /** True for approved artists, curators and owners. */
-    can_add_artwork?: boolean;
     billing_state_code?: string | null;
     gstin?: string | null;
     artist_onboarding_last_completed_step?: number | null;

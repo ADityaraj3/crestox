@@ -26,31 +26,18 @@ import { isPurchasePending } from "@/utils/pendingPurchase";
 
 /** API artwork media item */
 interface ArtworkMediaItem {
-  id: number;
-  artwork_id: number;
-  media_id: number;
-  display_order: number;
-  is_primary: boolean;
+  is_primary?: boolean;
   media: {
-    media_id: number;
     file_path: string;
-    original_file_name?: string;
-    mimetype?: string;
-    file_name?: string;
-    size?: number;
     orientation?: string;
   };
 }
 
-/** API artwork share item */
 interface ArtworkShare {
-  id: number;
-  artwork_id: number;
   current_price: string;
-  active_flag: boolean;
 }
 
-/** API artwork by id response */
+/** API artwork by id response (GET /artwork/:id) */
 export interface ArtworkDetail {
   id: number;
   name: string;
@@ -65,22 +52,24 @@ export interface ArtworkDetail {
   starting_price: string;
   valuation: string;
   quality_score: string;
-  market_premium?: string;
   created_at: string;
-  updated_at: string;
   artist_profile_id?: number;
-  artist_profile?: { id: number; artist_name: string; user_id: number };
+  artist_profile?: { id: number; artist_name: string };
   artwork_media?: ArtworkMediaItem[];
   shares?: ArtworkShare[];
   available_shares?: number;
-  available_from_artist?: number;
-  available_from_listings?: number;
   /** Live portfolio fractal price (same source as trading price quote). */
   current_fractal_price?: string | number | null;
 }
 
-/** API artwork list item (same shape as detail, used in artist reel) */
-export type ArtworkListItem = ArtworkDetail;
+/** API artwork list item (GET /artwork/artist/:id, used in the artist reel) */
+export interface ArtworkListItem {
+  id: number;
+  name: string;
+  valuation: string;
+  starting_price: string;
+  artwork_media: ArtworkMediaItem[];
+}
 
 function ArtDetailSkeleton() {
   return (

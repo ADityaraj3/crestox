@@ -579,26 +579,13 @@ export interface MyCollectionArtist {
   listed_shares: number;
   /** total_shares - listed_shares; the real cap for a new resale listing. */
   available_shares: number;
-  current_share_price: string;
   total_invested: string;
   current_value: string;
-  gain_loss: string;
-  gain_loss_pct: string;
-  /** What was actually paid for the held shares, incl. GST and buyer fees. */
-  total_paid?: string;
-  cost_basis_complete?: boolean;
   artworks: {
     artwork_id: number;
     artwork_name: string;
-    artwork_image_url: string;
     shares_count: number;
-    listed_shares?: number;
     available_shares?: number;
-    cost_basis?: string;
-    average_cost?: string;
-    current_value?: string;
-    gain_loss?: string;
-    gain_loss_pct?: string;
   }[];
 }
 

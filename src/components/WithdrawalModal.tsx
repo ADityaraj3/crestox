@@ -49,7 +49,7 @@ export default function WithdrawalModal({ isOpen, onClose, onSuccess, source }: 
   const [sendingLink, setSendingLink] = useState(false);
   const [linkSent, setLinkSent] = useState(false);
   const [tab, setTab] = useState<'new' | 'history'>('new');
-  const [historyData, setHistoryData] = useState<{ requests: WithdrawalRequest[]; pagination: { total: number } } | null>(null);
+  const [historyData, setHistoryData] = useState<{ requests: WithdrawalRequest[] } | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [cancellingId, setCancellingId] = useState<number | null>(null);
 
@@ -87,7 +87,7 @@ export default function WithdrawalModal({ isOpen, onClose, onSuccess, source }: 
     const loadHistory = async () => {
       setHistoryLoading(true);
       try {
-        const data = await getMyWithdrawalRequests() as { requests: WithdrawalRequest[]; pagination: { total: number } };
+        const data = await getMyWithdrawalRequests() as { requests: WithdrawalRequest[] };
         setHistoryData(data);
       } catch {
         toast.error('Failed to load withdrawal history');
@@ -103,7 +103,7 @@ export default function WithdrawalModal({ isOpen, onClose, onSuccess, source }: 
     try {
       await cancelWithdrawalRequest(id);
       toast.success('Withdrawal request cancelled. Funds returned to your wallet.');
-      const data = await getMyWithdrawalRequests() as { requests: WithdrawalRequest[]; pagination: { total: number } };
+      const data = await getMyWithdrawalRequests() as { requests: WithdrawalRequest[] };
       setHistoryData(data);
       const [withdrawal] = await Promise.all([getAvailableWithdrawalAmount(source)]);
       setWithdrawalData(withdrawal);

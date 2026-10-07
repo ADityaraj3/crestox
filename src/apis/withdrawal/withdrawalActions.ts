@@ -8,8 +8,6 @@ export interface AvailableWithdrawalResponse {
   wallet_balance: string;
   available_to_withdraw: string;
   withdrawal_platform_fee_rate?: string;
-  estimated_platform_fee_on_full_balance?: string;
-  estimated_net_on_full_balance?: string;
 }
 
 export interface PaymentMethod {
@@ -20,12 +18,10 @@ export interface PaymentMethod {
   bank_ifsc: string | null;
   upi_id: string | null;
   is_active: boolean;
-  created_at: string;
 }
 
 export interface BankDetailsStatus {
   has_fund_account: boolean;
-  fund_account_id: string | null;
   account_type?: string | null;
   bank_account_name: string | null;
   bank_account_number: string | null;
@@ -35,6 +31,8 @@ export interface BankDetailsStatus {
 }
 
 export interface SubmitBankDetailsDto {
+  /** Token from the emailed bank-details link; required by the API. */
+  verification_token: string;
   account_holder_name: string;
   account_number?: string;
   ifsc?: string;
@@ -50,16 +48,9 @@ export interface CreateWithdrawalDto {
 export interface WithdrawalRequest {
   id: number;
   amount: string;
-  currency: string;
   status: string;
-  fund_account_id: string | null;
-  razorpay_payout_id: string | null;
-  razorpay_payout_status: string | null;
   admin_note: string | null;
-  user_note: string | null;
   created_at: string;
-  updated_at: string;
-  processed_at: string | null;
 }
 
 export const getAvailableWithdrawalAmount = async (
