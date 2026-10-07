@@ -19,7 +19,7 @@ export const foundingPartners: Member[] = [
     avatar: 'https://firebasestorage.googleapis.com/v0/b/crestox-giok1.firebasestorage.app/o/founders%2Ffounder_prayush.jpeg?alt=media',
     description: <>A CEPT alum with a tech-savvy, entrepreneurial spirit, Prayush drives Crestox&apos;s product vision. From crafting seamless user journeys to building robust digital tools, he&apos;s the brains behind our platform&apos;s innovation. With a deep passion for Indian art and its future, Prayush ensures every feature empowers artists and collectors alike.</>,
     social_media_links: [
-      { platform: 'linkedin', url: 'https://www.linkedin.com/in/prayush-shah' },
+      { platform: 'linkedin', url: 'https://www.linkedin.com/in/prayush-shah-635146298/' },
       { platform: 'twitter', url: 'https://x.com/prayushshah' },
     ],
   },
@@ -29,8 +29,8 @@ export const foundingPartners: Member[] = [
     avatar: 'https://firebasestorage.googleapis.com/v0/b/crestox-giok1.firebasestorage.app/o/founders%2Ffounder_udit.jpeg?alt=media',
     description: <>A CEPT graduate, Udit brings a strong business pedigree rooted in his family&apos;s ventures. He excels at forging partnerships, growing networks, and overseeing logistics. Udit&apos;s knack for Indian art and culture fuels Crestox&apos;s community building—connecting creators, collectors, and collaborators across the country.</>,
     social_media_links: [
-      { platform: 'linkedin', url: 'https://www.linkedin.com/in/udit-shah' },
-      { platform: 'instagram', url: 'https://www.instagram.com/uditshah' },
+      { platform: 'linkedin', url: 'https://www.instagram.com/udit_1504' },
+      { platform: 'instagram', url: 'https://www.linkedin.com/in/udit1504' },
     ],
   },
 ];
